@@ -1,0 +1,27 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.3', extensions: pdo_sqlite }
+      - name: PHP syntax check
+        run: find server -name "*.php" -print0 | xargs -0 -n1 php -l
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: JS syntax check
+        run: for f in server/assets/*.js web/mock-api.js bridge/tiktok-bridge.js; do node --check "$f"; done
+      - name: Game engine smoke test
+        run: |
+          cat > /tmp/t.php <<'PHP'
+          <?php require 'server/includes/db.php'; require 'server/includes/helpers.php'; require 'server/includes/game_engine.php';
+          GameEngine::handleLiveEvent('join',['username'=>'ci']); GameEngine::handleLiveEvent('gift',['username'=>'ci','coins'=>1000]);
+          $s = GameEngine::publicState(); if ($s['guardianCount'] !== 1) exit(1); echo "ok\n";
+          PHP
+          php /tmp/t.php
+      - name: Build Vercel demo + standalone
+        run: bash scripts/build-web.sh && bash scripts/build-standalone.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: sociobeast-standalone, path: web/dist/sociobeast-standalone.html }
