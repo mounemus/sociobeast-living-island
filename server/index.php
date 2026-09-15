@@ -1,0 +1,236 @@
+<?php
+/**
+ * SOCIOBEAST GENESIS v11 — Main Interface
+ * Living AI creature with mythology, dreams, and memory
+ */
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/helpers.php';
+require_once __DIR__ . '/includes/state_engine.php';
+
+$voiceEnabled = getConfig('voice_enabled', '1') === '1';
+$subtitlesEnabled = getConfig('subtitles_enabled', '1') === '1';
+$demoMode = getConfig('demo_mode', '0') === '1' || isset($_GET['demo']);
+$creatureName = getConfig('creature_name', 'SocioBeast');
+$autonomyTickMs = (int)getConfig('autonomy_tick_ms', '30000');
+$mythologyEnabled = getConfig('mythology_enabled', '1') === '1';
+$streamingEnabled = getConfig('streaming_enabled', '0') === '1';
+
+// Get initial state for visual restoration
+$state = StateEngine::getPublicState();
+$initialStateJson = json_encode($state);
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title><?= clean($creatureName) ?> GENESIS — Living Digital Spirit</title>
+    <meta name="description" content="A living AI creature that develops its own mythology, dreams, and memories. Watch it evolve.">
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="stylesheet" href="assets/game.css?v=12">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌲</text></svg>">
+</head>
+<body>
+    <canvas id="creature-canvas"></canvas>
+
+    <div id="audio-hint">🔊 Click anywhere to awaken the forest</div>
+    <div id="load-status">Awakening spirits...</div>
+
+    <div id="creature-info">
+        <div id="creature-name"><?= clean($creatureName) ?></div>
+        <div id="creature-stage">Stage 1 · Solitary Spirit</div>
+        <div id="vitals-mini">
+            <div class="vital-bar">
+                <span class="vital-icon">⚡</span>
+                <div class="vital-track"><div class="vital-fill" id="v-energy" style="width:80%;background:#7fbe8c"></div></div>
+            </div>
+            <div class="vital-bar">
+                <span class="vital-icon">🍎</span>
+                <div class="vital-track"><div class="vital-fill" id="v-hunger" style="width:20%;background:#d4b87a"></div></div>
+            </div>
+            <div class="vital-bar">
+                <span class="vital-icon">💚</span>
+                <div class="vital-track"><div class="vital-fill" id="v-happy" style="width:55%;background:#b0ccb4"></div></div>
+            </div>
+        </div>
+        <div id="myth-count">📜 0 myths · 💤 0 dreams</div>
+    </div>
+
+    <div id="idle-prompt">💬 Say "hello" to the forest spirits...</div>
+
+    <div id="creature-expression">
+        <div id="expression-inner">
+            <div class="expr-header">
+                <div class="expr-indicator"></div>
+                <span class="expr-label" id="expr-mode">Thinking</span>
+                <span class="expr-mood" id="expr-mood">😌 curious</span>
+            </div>
+            <div class="expr-body">
+                <div id="expression-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mythology-panel">
+        <div id="myth-content">
+            <div class="myth-type">📜 Legend</div>
+            <div class="myth-text">The ancient spirits speak...</div>
+        </div>
+    </div>
+
+    <div id="event-feed"></div>
+
+    <div id="nav-hint">
+        <span>🔄 <span class="key">Auto-orbit</span> active</span>
+        <span>🖱️ <span class="key">Drag</span> rotate</span>
+        <span>🔍 <span class="key">Scroll</span> zoom</span>
+        <span>💭 <span class="key">T</span> thought</span>
+        <span>👻 <span class="key">S</span> shy | <span class="key">C</span> curious</span>
+        <span>🎮 <span class="key">H</span> HUD | <span class="key">G</span> test gift</span>
+    </div>
+
+    <div id="connection-status">
+        <span id="status-dot"></span>
+        <span id="status-text"><?= $demoMode ? '🎮 Demo' : '📡 LIVE' ?></span>
+    </div>
+
+    <?php if ($streamingEnabled): ?>
+    <div id="streaming-status">
+        <span class="rec-dot"></span>
+        <span>LIVE on YouTube</span>
+    </div>
+    <?php endif; ?>
+
+    <div id="debug-panel" class="hidden">
+        <div class="debug-header">
+            <span>🔧 Debug</span>
+            <button onclick="toggleDebug()">✕</button>
+        </div>
+        <div id="debug-content"></div>
+        <div class="debug-controls">
+            <button onclick="adminSpeak('monologue')" title="Monologue">💭</button>
+            <button onclick="adminSpeak('prophecy')" title="Prophecy">🔮</button>
+            <button onclick="adminSpeak('autonomous')" title="Thought">🤖</button>
+            <button onclick="generateDream()" title="Dream">💤</button>
+            <button onclick="generateMythology()" title="New Legend">📜</button>
+            <button onclick="toggleVoice()" title="Voice">🔊</button>
+        </div>
+        <div id="debug-status"></div>
+    </div>
+
+    <script>
+        // Configuration
+        window.SOCIOBEAST_CONFIG = {
+            voiceEnabled: <?= $voiceEnabled ? 'true' : 'false' ?>,
+            subtitlesEnabled: <?= $subtitlesEnabled ? 'true' : 'false' ?>,
+            demoMode: <?= $demoMode ? 'true' : 'false' ?>,
+            mythologyEnabled: <?= $mythologyEnabled ? 'true' : 'false' ?>,
+            streamingEnabled: <?= $streamingEnabled ? 'true' : 'false' ?>,
+            creatureName: <?= json_encode($creatureName) ?>,
+            autonomyTickMs: <?= $autonomyTickMs ?>,
+            apiBase: ''
+        };
+
+        // Initial state for visual restoration
+        window.INITIAL_STATE = <?= $initialStateJson ?>;
+
+        // Loading logger
+        window._loadLog = function(msg) {
+            var el = document.getElementById('load-status');
+            if (el) el.textContent = msg;
+            console.log('[LOAD] ' + msg);
+        };
+
+        // Hide audio hint on click
+        document.addEventListener('click', function() {
+            var hint = document.getElementById('audio-hint');
+            if (hint) hint.classList.add('hidden');
+        }, { once: true });
+    </script>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+            onerror="window._loadLog('ERROR: Three.js failed to load')"></script>
+
+    <!-- Verify THREE -->
+    <script>
+    if (typeof THREE === 'undefined') {
+        window._loadLog('THREE not loaded! Trying backup...');
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
+        s.onerror = function() { window._loadLog('FATAL: Cannot load Three.js'); };
+        document.head.appendChild(s);
+    } else {
+        window._loadLog('THREE r' + THREE.REVISION + ' ready');
+    }
+    </script>
+
+    <!-- GLTFLoader -->
+    <script>
+    function loadGLTFLoader() {
+        return new Promise(function(resolve, reject) {
+            if (typeof THREE === 'undefined') { reject('THREE missing'); return; }
+            if (typeof THREE.GLTFLoader !== 'undefined') { resolve(); return; }
+
+            var urls = [
+                'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js',
+                'https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js'
+            ];
+
+            function tryNext(idx) {
+                if (idx >= urls.length) { reject('GLTFLoader failed'); return; }
+                window._loadLog('Loading GLTFLoader...');
+                var s = document.createElement('script');
+                s.src = urls[idx];
+                s.onload = function() {
+                    if (typeof THREE.GLTFLoader !== 'undefined') {
+                        window._loadLog('GLTFLoader ready');
+                        resolve();
+                    } else {
+                        tryNext(idx + 1);
+                    }
+                };
+                s.onerror = function() { tryNext(idx + 1); };
+                document.head.appendChild(s);
+            }
+            tryNext(0);
+        });
+    }
+
+    function bootApp() {
+        if (typeof THREE === 'undefined') {
+            window._loadLog('Waiting for THREE...');
+            setTimeout(bootApp, 200);
+            return;
+        }
+        
+        loadGLTFLoader().then(function() {
+            window._loadLog('Loading visual engine...');
+            
+            // Load scripts in order
+            var scripts = ['assets/visualEngine.js?v=12', 'assets/speech.js', 'assets/ui.js', 'assets/app.js?v=12', 'assets/gameEngine.js?v=12'];
+            var loaded = 0;
+            
+            function loadNext() {
+                if (loaded >= scripts.length) return;
+                var s = document.createElement('script');
+                s.src = scripts[loaded];
+                s.onload = function() {
+                    loaded++;
+                    if (loaded < scripts.length) {
+                        setTimeout(loadNext, 50);
+                    }
+                };
+                s.onerror = function() { window._loadLog('ERROR: ' + scripts[loaded] + ' failed'); };
+                document.body.appendChild(s);
+            }
+            loadNext();
+        }).catch(function(err) {
+            window._loadLog('ERROR: ' + err);
+        });
+    }
+
+    bootApp();
+    </script>
+</body>
+</html>

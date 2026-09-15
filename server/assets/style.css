@@ -1,0 +1,582 @@
+/**
+ * SOCIOBEAST GENESIS v11 — Styles
+ * With thought bubbles
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-dark: #0a0f0a;
+  --text-light: #d0e8d0;
+  --text-dim: #708070;
+  --glow-green: #80c880;
+  --glow-soft: rgba(128, 200, 128, 0.3);
+  --panel-bg: rgba(15, 25, 15, 0.92);
+  --border-glow: rgba(128, 200, 128, 0.4);
+}
+
+body {
+  background: var(--bg-dark);
+  color: var(--text-light);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+#creature-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ═══ THOUGHT BUBBLES ═══ */
+.thought-bubble {
+  position: fixed;
+  z-index: 300;
+  transform: translate(-50%, 0);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(240, 248, 240, 0.98));
+  color: #2a3a2a;
+  padding: 14px 20px;
+  border-radius: 20px;
+  font-size: 15px;
+  max-width: 280px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4), 0 0 40px rgba(128, 200, 128, 0.3);
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+  font-family: Georgia, serif;
+  /* Force top area only */
+  top: 10% !important;
+  left: 50% !important;
+}
+
+.thought-bubble.visible {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1.02);
+}
+
+.thought-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 12px solid rgba(240, 248, 240, 0.98);
+}
+
+.thought-bubble .thought-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.thought-bubble .thought-text {
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ═══ NAVIGATION HINT ═══ */
+#nav-hint {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  background: var(--panel-bg);
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border: 1px solid var(--border-glow);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+#nav-hint span {
+  display: block;
+  margin: 4px 0;
+}
+
+#nav-hint .key {
+  color: var(--glow-green);
+  font-weight: bold;
+}
+
+/* ═══ AUDIO HINT ═══ */
+#audio-hint {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel-bg);
+  color: var(--text-light);
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 14px;
+  z-index: 100;
+  opacity: 0.9;
+  animation: pulse 2s infinite;
+  pointer-events: none;
+  border: 1px solid var(--border-glow);
+}
+
+#audio-hint.hidden { display: none; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.02); }
+}
+
+/* ═══ LOAD STATUS ═══ */
+#load-status {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99;
+  color: var(--text-dim);
+  font: 13px monospace;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ═══ CREATURE INFO ═══ */
+#creature-info {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 50;
+  background: var(--panel-bg);
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-glow);
+  min-width: 200px;
+  backdrop-filter: blur(10px);
+}
+
+#creature-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--glow-green);
+  margin-bottom: 4px;
+  text-shadow: 0 0 20px var(--glow-soft);
+}
+
+#creature-stage {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+#myth-count {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(128, 200, 128, 0.2);
+}
+
+#vitals-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vital-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vital-icon {
+  font-size: 12px;
+  width: 18px;
+  text-align: center;
+}
+
+.vital-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.vital-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+/* ═══ IDLE PROMPT ═══ */
+#idle-prompt {
+  position: fixed;
+  bottom: 160px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel-bg);
+  padding: 14px 28px;
+  border-radius: 25px;
+  font-size: 15px;
+  z-index: 60;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  border: 1px solid var(--border-glow);
+  text-align: center;
+  max-width: 90%;
+}
+
+#idle-prompt.visible {
+  opacity: 0.95;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-8px); }
+}
+
+/* ═══ EXPRESSION WINDOW ═══ */
+#creature-expression {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  transform: none;
+  z-index: 150;
+  width: 45%;
+  max-width: 500px;
+  min-width: 280px;
+  pointer-events: none;
+}
+
+#expression-inner {
+  background: var(--panel-bg);
+  border-radius: 20px;
+  padding: 16px 24px;
+  border: 1px solid var(--border-glow);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.4s ease;
+  backdrop-filter: blur(12px);
+  max-height: 35vh;
+  overflow-y: auto;
+}
+
+#expression-inner.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.expr-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.expr-indicator {
+  width: 8px;
+  height: 8px;
+  background: var(--glow-green);
+  border-radius: 50%;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.expr-label {
+  color: var(--glow-green);
+  font-weight: 500;
+}
+
+.expr-mood {
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+.expr-body {
+  min-height: 40px;
+}
+
+#expression-text {
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text-light);
+}
+
+#expression-text.typing::after {
+  content: '▋';
+  animation: cursor 0.8s infinite;
+  color: var(--glow-green);
+}
+
+@keyframes cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ═══ MYTHOLOGY PANEL ═══ */
+#mythology-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  transform: scale(0.9);
+  z-index: 200;
+  background: linear-gradient(145deg, rgba(20, 35, 20, 0.98), rgba(10, 20, 10, 0.98));
+  border: 2px solid var(--glow-green);
+  border-radius: 24px;
+  padding: 24px 30px;
+  max-width: 420px;
+  width: 35%;
+  min-width: 300px;
+  max-height: 40vh;
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.5s ease;
+  box-shadow: 0 0 60px var(--glow-soft), inset 0 0 40px rgba(128, 200, 128, 0.1);
+}
+
+#mythology-panel.visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+#myth-content .myth-type {
+  font-size: 14px;
+  color: var(--glow-green);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+#myth-content .myth-text {
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--text-light);
+  font-style: italic;
+}
+
+/* ═══ EVENT FEED ═══ */
+#event-feed {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 40vh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.event-item {
+  background: var(--panel-bg);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  border: 1px solid rgba(128, 200, 128, 0.2);
+  animation: slideIn 0.3s ease;
+  max-width: 250px;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.event-item.like { border-color: #e57373; }
+.event-item.gift { border-color: #ffd54f; }
+.event-item.follow { border-color: #4fc3f7; }
+.event-item.comment { border-color: #81c784; }
+
+/* ═══ DEBUG PANEL ═══ */
+#debug-panel {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 90;
+  background: var(--panel-bg);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-glow);
+  font-size: 11px;
+  font-family: monospace;
+  max-width: 280px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+#debug-panel.hidden { display: none; }
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.debug-header button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#debug-content {
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.debug-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.debug-controls button {
+  background: rgba(128, 200, 128, 0.2);
+  border: 1px solid var(--border-glow);
+  color: var(--text-light);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.debug-controls button:hover {
+  background: rgba(128, 200, 128, 0.4);
+}
+
+/* ═══ CONNECTION STATUS ═══ */
+#connection-status {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-bg);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  border: 1px solid var(--border-glow);
+}
+
+#status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--glow-green);
+  animation: pulse 2s infinite;
+}
+
+#status-dot.error {
+  background: #e57373;
+}
+
+/* ═══ STREAMING INDICATOR ═══ */
+#streaming-status {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  z-index: 55;
+  background: rgba(255, 0, 0, 0.15);
+  border: 1px solid rgba(255, 0, 0, 0.4);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  display: none;
+}
+
+#streaming-status.active {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#streaming-status .rec-dot {
+  width: 10px;
+  height: 10px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: recBlink 1s infinite;
+}
+
+@keyframes recBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 600px) {
+  #creature-info {
+    top: 10px;
+    left: 10px;
+    padding: 12px 16px;
+    min-width: 160px;
+  }
+
+  #creature-name {
+    font-size: 18px;
+  }
+
+  #creature-expression {
+    bottom: 20px;
+    width: 95%;
+  }
+
+  #expression-inner {
+    padding: 14px 18px;
+  }
+
+  #expression-text {
+    font-size: 15px;
+  }
+
+  #mythology-panel {
+    padding: 24px;
+    width: 95%;
+  }
+
+  #myth-content .myth-text {
+    font-size: 16px;
+  }
+
+  #debug-panel {
+    display: none;
+  }
+
+  #event-feed {
+    max-width: 180px;
+  }
+
+  .thought-bubble {
+    max-width: 200px;
+    font-size: 12px;
+    padding: 10px 14px;
+  }
+}

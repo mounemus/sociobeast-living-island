@@ -1,0 +1,12 @@
+# runtime data
+server/data/*.db
+server/data/*.db-*
+# node
+bridge/node_modules/
+bridge/.env
+# build output
+web/dist/
+# misc
+.DS_Store
+*.log
+.vercel

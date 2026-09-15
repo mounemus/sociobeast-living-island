@@ -1,0 +1,15 @@
+{
+  "name": "sociobeast-tiktok-bridge",
+  "version": "1.0.0",
+  "description": "Bridge TikTok Live → SocioBeast Genesis (normalises events and pushes them to api/tiktok.php)",
+  "type": "module",
+  "main": "tiktok-bridge.js",
+  "scripts": {
+    "start": "node tiktok-bridge.js",
+    "demo": "node tiktok-bridge.js --demo"
+  },
+  "dependencies": {
+    "tiktok-live-connector": "^2.0.5",
+    "dotenv": "^16.4.5"
+  }
+}
