@@ -178,7 +178,9 @@ The island is a **player**. `includes/island_director.php` runs inside every ser
 
 3. **Gives voice to the cast** — original characters occupying Miyazaki-like roles: 🐢 **Mossback** (ancient tortoise-god carrying a grove, keeper of balance), 🐆 **Ember-Eye** (great grey lynx, matriarch of the Fang), ⚒️ **The Ironwright** (leader of the Forge, "we are not evil, we are hungry"), 🎭 **The Wanderer** (masked traveller, speaks for balance), 🩸 **The Blightling** (the curse made flesh), 🌑 **The Tall One** (never speaks). With an AI key they improvise in character; without, they use written lines. They walk the island as procedural low-poly figures with lanterns and glows.
 
-## 12c. Visual layer (v14)
+## 12c. Visual layer (v14–v15)
+**v15 — painted cast & sky (Higgsfield):** the five characters and the cosmic backdrop are hand-painted-style illustrations generated on higgsfield.ai from original designs (`server/assets/art/`). Characters are rendered as camera-facing painted cutouts with contact shadows and glow lights (mirrored to face their walking direction); the sky is a slowly rotating painted dome tinted by day/night and events. Procedural low-poly figures remain as an automatic fallback if the art fails to load (`window.FORCE_PROCEDURAL_CAST = true` forces it).
+
 Bloom post-processing (UnrealBloom), drifting mist planes, a glowing pond with ripples at the island's heart, volumetric-looking light shafts, embers over the Forge shore, rain, the Tall One's passing — each unlocked by chapter progress so the island visibly grows richer as the audience plays.
 
 ## 13. Architecture

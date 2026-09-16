@@ -14,7 +14,7 @@ html = html.replace('<script src="mock-api.js?v=1"></script>', '<script>' + mock
 glb = base64.b64encode(open('server/assets/kodama.glb','rb').read()).decode()
 bundle = "\n;\n".join(open('server/assets/' + f).read() for f in ['visualEngine.js','speech.js','ui.js','app.js','gameEngine.js'])
 bundle = bundle.replace('</script>', '<\\/script>')
-html = html.replace("window.INITIAL_STATE = null;", "window.INITIAL_STATE = null;\n        window.KODAMA_GLB_URL = 'data:model/gltf-binary;base64," + glb + "';")
+html = html.replace("window.INITIAL_STATE = null;", "window.INITIAL_STATE = null;\n        window.ART_BASE = 'https://cdn.jsdelivr.net/gh/mounemus/sociobeast-living-island@main/server/assets/art/';\n        window.KODAMA_GLB_URL = 'data:model/gltf-binary;base64," + glb + "';")
 # replace the sequential script loader by an inline bundle runner
 html = re.sub(r"var scripts = \[.*?loadNext\(\);", "try { (new Function(document.getElementById('sb-bundle').textContent))(); } catch (e) { window._loadLog('Bundle error: ' + e.message); console.error(e); }", html, flags=re.S)
 html = html.replace('</body>', '<script type="text/plain" id="sb-bundle">' + bundle + '</script>\n</body>')

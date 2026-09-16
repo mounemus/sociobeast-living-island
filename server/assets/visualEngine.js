@@ -240,7 +240,7 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.5;
+    renderer.toneMappingExposure = 1.05;
     clock = new THREE.Clock();
 
     // ═══ MOUSE/TOUCH CONTROLS ═══
@@ -332,10 +332,11 @@
     scene.add(new THREE.Points(starGeo, starMat));
 
     // ═══ LIGHTING — COSMIC + FOREST ═══
-    scene.add(new THREE.AmbientLight(0x404060, 0.8));
+    scene.add(new THREE.AmbientLight(0x3a4a5a, 0.55));
+    scene.add(new THREE.HemisphereLight(0x8fb0d0, 0x2a3a1a, 0.45));
     
     // Main sunlight from above
-    mainLight = new THREE.DirectionalLight(0xffeedd, 1.8);
+    mainLight = new THREE.DirectionalLight(0xffe4c4, 1.35);
     mainLight.position.set(-20, 40, 30);
     mainLight.castShadow = true;
     mainLight.shadow.mapSize.set(4096, 4096);
@@ -423,8 +424,8 @@
         const fY = height * 0.75 + j * 0.6;
         const fGeo = new THREE.SphereGeometry(fSize, 8, 6);
         const fMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color().setHSL(0.28 + Math.random() * 0.08, 0.5 + Math.random() * 0.2, 0.15 + Math.random() * 0.1),
-          roughness: 0.8
+          color: new THREE.Color().setHSL(0.27 + Math.random() * 0.09, 0.55 + Math.random() * 0.25, 0.11 + Math.random() * 0.09),
+          roughness: 0.9
         });
         const foliage = new THREE.Mesh(fGeo, fMat);
         foliage.position.set(x + (Math.random() - 0.5) * 0.3, fY, z + (Math.random() - 0.5) * 0.3);
@@ -877,7 +878,7 @@
     // Fixed position at top center - CSS handles the rest
     bubble.style.position = 'fixed';
     bubble.style.left = '50%';
-    bubble.style.top = '12%';
+    bubble.style.top = '58%';
     bubble.style.zIndex = '300';
     
     document.body.appendChild(bubble);
@@ -1126,6 +1127,7 @@
     // Sky lerp
     skyCurrent.lerp(skyTarget, Math.min(1, dt * 0.8));
     if (scene.background) scene.background.copy(skyCurrent);
+    if (skyDome) { const l = skyCurrent.getHSL({}).l; skyDome.material.color.setScalar(0.35 + l * 6); skyDome.rotation.y += dt * 0.004; }
     if (scene.fog) scene.fog.color.copy(skyCurrent);
     // Shake
     if (shakeAmount > 0.001) {
@@ -1251,9 +1253,9 @@
     const day = Math.max(0, Math.sin((tm - 0.25) * Math.PI * 2 * 0.5 + Math.PI / 2)); // crude
     const f = Math.max(0.15, Math.sin(tm * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5);
     dayFactor = f;
-    if (mainLight) mainLight.intensity = 0.4 + f * 1.6;
+    if (mainLight) mainLight.intensity = 0.35 + f * 1.1;
     if (rimLight) rimLight.intensity = 0.3 + (1 - f) * 0.9;
-    scene.children.forEach(function(o) { if (o.isAmbientLight) o.intensity = 0.35 + f * 0.6; });
+    scene.children.forEach(function(o) { if (o.isAmbientLight) o.intensity = 0.25 + f * 0.35; if (o.isHemisphereLight) o.intensity = 0.2 + f * 0.3; });
   }
 
   function setSky(hex) { skyTarget.set(hex); }
@@ -1304,7 +1306,9 @@
   function focusOn(k, seconds) {
     if (!k) return;
     autoRotate = false; lastInteraction = Date.now() + (seconds || 4) * 1000 - autoResumeDelay;
-    cameraTarget.set(k.wx, 1, k.wz); cameraDistance = 12; updateCameraPosition();
+    const fx = (typeof k.wx === 'number') ? k.wx : (k.position ? k.position.x : 0), fz = (typeof k.wz === 'number') ? k.wz : (k.position ? k.position.z : 0);
+    if (!isFinite(fx) || !isFinite(fz)) return;
+    cameraTarget.set(fx, 1, fz); cameraDistance = k.isGuardian || typeof k.wx === 'number' ? 12 : 22; updateCameraPosition();
     setTimeout(function() { cameraTarget.set(0, 0, 0); cameraDistance = 45; updateCameraPosition(); }, (seconds || 4) * 1000);
   }
 
@@ -1379,12 +1383,25 @@
   let pond = null, pondT = 0, embersPts = null;
   const unlocked = {};
 
+  // ═══ v15 — PAINTED SKY (Higgsfield backdrop) ═══
+  let skyDome = null;
+  function setupPaintedSky() {
+    const base = (window.ART_BASE || 'assets/art/');
+    new THREE.TextureLoader().load(base + 'backdrop.jpg', function(tex) {
+      tex.mapping = THREE.EquirectangularReflectionMapping; tex.wrapS = THREE.RepeatWrapping;
+      const geo = new THREE.SphereGeometry(260, 48, 24);
+      const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, transparent: true, opacity: 0.9, depthWrite: false, fog: false });
+      skyDome = new THREE.Mesh(geo, mat); skyDome.rotation.y = Math.PI; scene.add(skyDome);
+      console.log('[V] Painted sky loaded');
+    }, undefined, function() { console.warn('[V] painted sky not available'); });
+  }
+
   function setupPostFX() {
     if (composer || !THREE.EffectComposer || !THREE.UnrealBloomPass) return;
     try {
       composer = new THREE.EffectComposer(renderer);
       composer.addPass(new THREE.RenderPass(scene, camera));
-      bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.6, 0.82);
+      bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.22, 0.5, 0.92);
       composer.addPass(bloomPass);
       window.addEventListener('resize', function() { composer.setSize(innerWidth, innerHeight); });
       console.log('[V] Bloom enabled');
@@ -1439,7 +1456,7 @@
   function applyUnlocks(list) {
     (list || []).forEach(function(u) {
       if (u === 'mist') unlockMist(); if (u === 'pond') unlockPond(); if (u === 'shafts') unlockShafts(); if (u === 'embers') unlockEmbers();
-      if (u === 'bloom' && bloomPass) bloomPass.strength = 0.9;
+      if (u === 'bloom' && bloomPass) bloomPass.strength = 0.35;
       if (CAST[u]) showCharacter(u, true);
     });
   }
@@ -1496,7 +1513,34 @@
     g.userData = { kind: kind, angle: side === 'industry' ? Math.PI / 2 * 1.5 : 0, radius: kind === 'wanderer' ? 8 : 20, speed: 0.08, side: side }; return g;
   }
 
+  // ═══ v15 — PAINTED CAST (Higgsfield concept art as billboards) ═══
+  const SPRITE_SPEC = { mossback: { h: 7.5, r: 21, speed: 0.045, a: 0 }, ember_eye: { h: 4.2, r: 24, speed: 0.12, a: Math.PI },
+                        ironwright: { h: 3.2, r: 20, speed: 0.08, a: Math.PI * 0.75 }, wanderer: { h: 3.4, r: 8, speed: 0.08, a: 0 }, blightling: { h: 4.5, r: 15, speed: 0.06, a: Math.PI * 0.5 } };
+  const texLoader = new THREE.TextureLoader();
+  function buildSprite(key) {
+    const spec = SPRITE_SPEC[key], base = (window.ART_BASE || 'assets/art/');
+    const g = new THREE.Group();
+    const mat = new THREE.SpriteMaterial({ transparent: true, opacity: 0, depthWrite: false, fog: true });
+    const sp = new THREE.Sprite(mat); sp.center.set(0.5, 0); g.add(sp);
+    texLoader.load(base + key + '_sprite.png', function(tex) {
+      tex.encoding = THREE.sRGBEncoding; tex.minFilter = THREE.LinearMipmapLinearFilter; mat.map = tex; mat.needsUpdate = true;
+      const ar = tex.image.width / tex.image.height; sp.scale.set(spec.h * ar, spec.h, 1); g.userData.ready = true;
+    }, undefined, function() { console.warn('[V] sprite missing for', key); g.userData.failed = true; });
+    // soft contact shadow
+    const sh = new THREE.Mesh(new THREE.CircleGeometry(spec.h * 0.28, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35, depthWrite: false }));
+    sh.rotation.x = -Math.PI / 2; sh.position.y = 0.05; g.add(sh);
+    const glowColor = { mossback: 0x9fdf9f, ember_eye: 0xff8030, ironwright: 0xffb060, wanderer: 0xc0d0ff, blightling: 0xff1040 }[key];
+    const gl = new THREE.PointLight(glowColor, key === 'blightling' ? 2 : 1, 12); gl.position.y = spec.h * 0.5; g.add(gl);
+    g.userData = { kind: key, angle: spec.a, radius: spec.r, speed: spec.speed, sprite: sp, mat: mat, isSprite: true, prowl: 0 };
+    return g;
+  }
+
   function showCharacter(key, on) {
+    if (on && !CAST[key] && SPRITE_SPEC[key] && !window.FORCE_PROCEDURAL_CAST) {
+      const g = buildSprite(key); g.userData.alpha = 0; scene.add(g); CAST[key] = g;
+      burst(Math.cos(g.userData.angle) * g.userData.radius, 1, Math.sin(g.userData.angle) * g.userData.radius, 200, key === 'blightling' ? 0xff1040 : 0xffffff, { spread: 3, speed: 2, up: 4, size: 0.25, life: 3 });
+      return;
+    }
     if (on && !CAST[key]) {
       const b = { mossback: buildMossback, ember_eye: buildEmberEye, blightling: buildBlightling,
                   ironwright: function() { return buildHuman(0xb06030, 0xffb060, 'ironwright', 'industry'); },
@@ -1510,6 +1554,20 @@
   function updateCast(dt) {
     Object.keys(CAST).forEach(function(k) {
       const g = CAST[k], u = g.userData;
+      if (u.isSprite) {
+        if (!u.born) u.born = performance.now();
+        if (u.alpha < 1) u.alpha = Math.min(1, (performance.now() - u.born) / 1800);
+        u.mat.opacity = u.alpha * (k === 'blightling' ? 0.85 + 0.15 * Math.sin(t * 6) : 1);
+        if (k === 'ember_eye') { u.prowl += dt; u.speed = 0.08 + 0.1 * Math.max(0, Math.sin(u.prowl * 0.3)); }
+        u.angle += u.speed * dt;
+        g.position.set(Math.cos(u.angle) * u.radius, k === 'blightling' ? 0.3 + Math.sin(t * 2) * 0.3 : 0, Math.sin(u.angle) * u.radius);
+        u.sprite.position.y = (k === 'mossback' ? Math.abs(Math.sin(t * 0.8)) * 0.12 : (k === 'blightling' ? 0 : Math.abs(Math.sin(t * 4)) * 0.06));
+        // face the walking direction: mirror the painting when moving left relative to camera
+        const dirx = -Math.sin(u.angle), camx = camera.position.x - g.position.x;
+        const flip = (dirx * (camera.position.z - g.position.z) - (Math.cos(u.angle)) * camx) > 0 ? -1 : 1;
+        if (u.sprite.scale.x !== 0) u.sprite.scale.x = Math.abs(u.sprite.scale.x) * flip;
+        return;
+      }
       if (u.alpha < 1) { u.alpha = Math.min(1, u.alpha + dt * 0.5); const sc = (k === 'mossback' ? 0.9 : 1) * (0.001 + 0.999 * u.alpha); g.scale.setScalar(sc); }
       if (k === 'ember_eye') { u.prowl += dt; u.speed = 0.08 + 0.1 * Math.max(0, Math.sin(u.prowl * 0.3)); }
       u.angle += u.speed * dt * (k === 'wanderer' ? 1 : 1) * (k === 'blightling' ? 1 : 1);
@@ -1527,7 +1585,7 @@
     burst(b.position.x, 2, b.position.z, 300, 0xff1040, { spread: 2, speed: 3 + strength * 3, up: 3, size: 0.25, life: 3 });
     shake(0.3 + strength * 0.5);
   }
-  function castSpeakFx(key) { const g = CAST[key]; if (!g) return null; burst(g.position.x, 2.5, g.position.z, 60, 0xffffff, { spread: 1, speed: 0.6, up: 1.5, size: 0.15, life: 2 }); return { x: g.position.x, y: 3.5, z: g.position.z }; }
+  function castSpeakFx(key) { const g = CAST[key]; if (!g) return null; const h = (SPRITE_SPEC[key] ? SPRITE_SPEC[key].h : 3); burst(g.position.x, h * 0.6, g.position.z, 60, 0xffffff, { spread: 1, speed: 0.6, up: 1.5, size: 0.15, life: 2 }); return { x: g.position.x, y: h, z: g.position.z }; }
 
   // ═══ PUBLIC API ═══
   window.VisualEngine = {
@@ -1538,6 +1596,7 @@
       try {
         initScene();
         setupPostFX();
+        setupPaintedSky();
         console.log('[V] Scene initialized');
       } catch(e) {
         console.error('[V] initScene failed:', e);

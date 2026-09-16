@@ -82,6 +82,7 @@ $seasons = Database::get()->query("SELECT * FROM seasons ORDER BY season DESC LI
 <nav>
   <a href="index.php">📊 Dashboard</a><a href="island.php" class="on">🌲 Island</a><a href="config.php">⚙️ Configuration</a><a href="memory.php">🧠 Memory</a><a href="mythology.php">📜 Mythology</a><a href="streaming.php">📡 Streaming</a><a href="../index.php?hud=1" target="_blank">▶ Open live</a><a href="logout.php">🚪 Logout</a>
 </nav>
+<div style="border-radius:14px;overflow:hidden;margin-bottom:14px;max-height:180px"><img src="../assets/art/keyart.jpg" style="width:100%;display:block;object-fit:cover;max-height:180px" alt=""></div>
 <h1>🌲 The Living Island — control room</h1>
 <p style="opacity:.7;margin:0 0 16px">Season <?= $s['season'] ?> · Chapter <?= $dir['chapter']['number'] ?>/<?= $dir['chapter']['total'] ?> · <?= htmlspecialchars($dir['chapter']['title']) ?> · <?= $s['guardianCount'] ?> guardians</p>
 <?php if ($message): ?><div class="msg"><?= $message ?></div><?php endif; ?>

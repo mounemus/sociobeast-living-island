@@ -8,6 +8,8 @@
 > Admin control room: `/admin/island.php` — chapters, Nature parameters, cast, curse controls and the **TikTok Live transmission panel** (bridge status, secret, OBS URL, test events).
 > Three.js + PHP/SQLite + a Node TikTok bridge. By [UbMaker](https://virlabdesign.com).
 
+![SocioBeast — The Living Island](server/assets/art/keyart.jpg)
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mounemus/sociobeast-living-island)
 
 📖 Full concept: [GAME-DESIGN.md](GAME-DESIGN.md)

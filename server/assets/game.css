@@ -111,3 +111,8 @@
 #hud-banner .sub { display: block; font-size: 13px; opacity: .85; margin-top: 4px; font-style: italic; }
 #game-hud.quiet > *:not(#hud-banner) { opacity: .15; transition: opacity 1s; }
 @media (max-aspect-ratio: 3/4) { #hud-chapter { top: 190px; } #hud-boss { top: 300px; } #hud-nature { top: auto; bottom: 330px; width: 44vw; left: 8px; } }
+
+/* v15 compact nav hint & layout fixes */
+#nav-hint { font-size: 10px; padding: 6px 10px; opacity: .6; max-width: 150px; }
+#nav-hint span { display: inline; margin: 0 4px 0 0; }
+#hud-chapter { top: 156px; }
