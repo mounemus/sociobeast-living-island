@@ -223,12 +223,13 @@
   // spin, breathing), the FX and the bubbles keep working. Missing files simply keep the procedural creature.
   // ─────────────────────────────────────────────────────────────
   const models = {}; // stage → { obj, height } | 'missing' | 'loading'
-  function modelUrl(n) { return 'assets/models/form-' + String(n + 1).padStart(2, '0') + '.glb'; }
+  const MODEL_FORMS = [1, 3, 4, 6, 8, 9, 11, 10]; // art-bible form per game stage (same mapping as ART in game.js)
+  function modelUrl(n) { return 'assets/models/form-' + String(MODEL_FORMS[n] || n + 1).padStart(2, '0') + '.glb'; }
   function loadModel(n) {
     if (models[n] !== undefined || !T.GLTFLoader) return;
     models[n] = 'loading';
     new T.GLTFLoader().load(modelUrl(n), function(gltf) {
-      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh) { o.castShadow = false; if (o.material) { o.material.roughness = Math.min(0.9, (o.material.roughness || 0.7) + 0.1); if (o.material.emissive) o.material.emissiveIntensity = 0.15; } } });
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.material.roughness = Math.min(0.85, (o.material.roughness || 0.7)); if (o.material.emissive && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.28; } } }); // textured models glow softly from their own texture, like the concept art
       const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), h = Math.max(0.001, size.y);
       const sc = 2.55 / h; obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
       obj.position.set(-c.x, -box.min.y, -c.z);
