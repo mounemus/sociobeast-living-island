@@ -395,8 +395,8 @@
     // camera: in front, gentle sway, pulls back as it grows
     orbitAngle += dt * 0.06; camPunch = lerp(camPunch, 0, k * 0.8);
     const portrait = innerHeight > innerWidth;
-    const dist = ((portrait ? 4.6 : 4.0) + A.growth * 3.4) * (1 - camPunch * 0.15);
-    camTarget.lerp(new T.Vector3(root.position.x * 0.5, (1.35 + (A.stage >= 6 ? 0.3 : 0)) * A.growth + (portrait ? 0.25 : 0.05), root.position.z * 0.5), k * 0.5);
+    const dist = ((portrait ? 5.8 : 4.0) + A.growth * (portrait ? 4.0 : 3.4)) * (1 - camPunch * 0.15);
+    camTarget.lerp(new T.Vector3(root.position.x * 0.5, (1.35 + (A.stage >= 6 ? 0.3 : 0)) * A.growth + (portrait ? 0.55 : 0.05), root.position.z * 0.5), k * 0.5);
     const sway = Math.sin(orbitAngle * 0.5) * 0.3;
     camera.position.set(camTarget.x + Math.sin(sway) * dist, camTarget.y + 0.7 + A.growth * 0.35 + camPunch * 0.2, camTarget.z + Math.cos(sway) * dist);
     camera.lookAt(camTarget);

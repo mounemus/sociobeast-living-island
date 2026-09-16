@@ -55,7 +55,8 @@
     // Pip: hovers in a figure-eight around home, comes forward when speaking, spirals when excited
     P.speaking = Math.max(0, P.speaking - dt); P.excite = Math.max(0, P.excite - dt);
     const k = 1 - Math.pow(0.02, dt);
-    const target = P.speaking > 0 ? new T.Vector3(-1.5, 2.5, 1.9) : P.home.clone().add(new T.Vector3(Math.sin(t * 0.7) * 0.5, Math.sin(t * 1.9) * 0.25, Math.cos(t * 0.5) * 0.4));
+    const portrait = innerHeight > innerWidth; P.home.x = portrait ? -1.7 : -2.4; M.g.position.x = portrait ? 1.8 : 2.45; M.g.position.z = portrait ? 1.1 : 0.7;
+    const target = P.speaking > 0 ? new T.Vector3(portrait ? -1.1 : -1.5, 2.5, 1.9) : P.home.clone().add(new T.Vector3(Math.sin(t * 0.7) * 0.5, Math.sin(t * 1.9) * 0.25, Math.cos(t * 0.5) * 0.4));
     if (P.excite > 0) { target.x += Math.cos(t * 6) * 0.9; target.y += Math.sin(t * 6) * 0.5; }
     P.g.position.lerp(target, k * 0.6);
     P.wings.forEach(function(w, i) { const side = i === 0 ? -1 : 1; w.rotation.y = side * (0.9 + Math.sin(t * 22) * 0.5); });
