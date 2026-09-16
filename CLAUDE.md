@@ -38,7 +38,8 @@ scripts/build-web.sh    → web/dist (Vercel output, vercel.json)   scripts/buil
   council_open/closed, vote_cast, quest_complete, nature_move, nature_gift, blight, boss_defeated, character_speak, chapter,
   chapter_complete, silence, season_end, request_speech. Handlers: `gameEngine.js → handleEvent`.
 - Chat commands: `!clan <grove|forge|fang|veil> !me !top !quest !lore !calm !pray !breathe !1 !2 !3 !summon !decree !dance !feed !hide !seek !rain`
-- Keys on the live page: H hud · G test gift · R rain · T thought · S/C shy/curious · D debug · M mythology
+- Keys on the live page: H hud · G test gift · R rain · T thought · S/C shy/curious · D debug · click `? keys` (bottom right) for the operator cheat-sheet
+- HUD (v16, `game.css` + `gameEngine.js → buildHud/renderHud`): one glass design system (tokens in `:root`), zones = top strip (chapter · season · energy · balance · peoples · curse when > 10%) · side panels (quests / top guardians, positioned under the strip via `--hud-top-h`) · centre (vote, banner, boss) · voice (`#creature-expression` Beast + `#hud-speech` cast, bottom centre) · feed (4 items, bottom left) · one contextual call-to-action (`renderCta`: vote → curse → boss → join a people). Portrait 9:16 turns side panels into one-line tickers. The v11 overlays (creature-info, nav-hint, mythology panel, event-feed, connection pill, idle prompt) are gone — keep it that way; Nature's moves go through the feed.
 - Admin password default `admin123` (`/admin/`); bridge secret generated in `/admin/island.php`.
 - Three.js r128 UMD from cdnjs + examples/js post-processing from jsdelivr; no ES modules in the page.
 
@@ -51,8 +52,8 @@ cd bridge && npm install && npm run demo   # simulated TikTok audience against S
 ```
 Delete `server/data/sociobeast.db` after schema changes (tables are created on first run).
 
-## Status (v15) & next steps
-Done: full game loop, Island Director + chapters, painted cast & sky (Higgsfield), admin control room, Vercel demo, CI.
+## Status (v16) & next steps
+Done: full game loop, Island Director + chapters, painted cast & sky (Higgsfield), admin control room, Vercel demo, CI, HUD redesign (v16: single layer, calmer, portrait-first).
 Backlog, in priority order:
 1. Replace low-poly trees with painted tree billboards (2–3 sprites) or GLB trees; textured GLB cast when Higgsfield credits allow (`image_to_3d`, `should_texture:true`).
 2. VPS deployment script (nginx + php-fpm + pm2 for the bridge) for virlabdesign.com/live.

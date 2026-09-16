@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SocioBeast — The Living Island</title>
     <meta name="description" content="A living AI creature that develops its own mythology, dreams, and memories. Watch it evolve.">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
     <link rel="stylesheet" href="assets/style.css">
     <meta name="description" content="SocioBeast — The Living Island. A cosmic floating island where every TikTok viewer becomes a guardian spirit. Browser demo.">
     <meta property="og:title" content="SocioBeast — The Living Island">
     <meta property="og:description" content="1000+ AI spirits, 4 clans, council votes, fractures. Interactive TikTok Live game by UbMaker.">
-    <link rel="stylesheet" href="assets/game.css?v=14">
+    <link rel="stylesheet" href="assets/game.css?v=16">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌲</text></svg>">
 </head>
 <body>
@@ -17,28 +19,6 @@
 
     <div id="audio-hint">🔊 Click anywhere to awaken the forest</div>
     <div id="load-status">Awakening spirits...</div>
-
-    <div id="creature-info">
-        <div id="creature-name">SocioBeast</div>
-        <div id="creature-stage">Stage 1 · Solitary Spirit</div>
-        <div id="vitals-mini">
-            <div class="vital-bar">
-                <span class="vital-icon">⚡</span>
-                <div class="vital-track"><div class="vital-fill" id="v-energy" style="width:80%;background:#7fbe8c"></div></div>
-            </div>
-            <div class="vital-bar">
-                <span class="vital-icon">🍎</span>
-                <div class="vital-track"><div class="vital-fill" id="v-hunger" style="width:20%;background:#d4b87a"></div></div>
-            </div>
-            <div class="vital-bar">
-                <span class="vital-icon">💚</span>
-                <div class="vital-track"><div class="vital-fill" id="v-happy" style="width:55%;background:#b0ccb4"></div></div>
-            </div>
-        </div>
-        <div id="myth-count">📜 0 myths · 💤 0 dreams</div>
-    </div>
-
-    <div id="idle-prompt">💬 Say "hello" to the forest spirits...</div>
 
     <div id="creature-expression">
         <div id="expression-inner">
@@ -52,31 +32,6 @@
             </div>
         </div>
     </div>
-
-    <div id="mythology-panel">
-        <div id="myth-content">
-            <div class="myth-type">📜 Legend</div>
-            <div class="myth-text">The ancient spirits speak...</div>
-        </div>
-    </div>
-
-    <div id="event-feed"></div>
-
-    <div id="nav-hint">
-        <span>🔄 <span class="key">Auto-orbit</span> active</span>
-        <span>🖱️ <span class="key">Drag</span> rotate</span>
-        <span>🔍 <span class="key">Scroll</span> zoom</span>
-        <span>💭 <span class="key">T</span> thought</span>
-        <span>👻 <span class="key">S</span> shy | <span class="key">C</span> curious</span>
-        <span>🎮 <span class="key">H</span> HUD | <span class="key">G</span> test gift | <span class="key">R</span> rain</span>
-    </div>
-
-    <div id="connection-status">
-        <span id="status-dot"></span>
-        <span id="status-text">🎮 Demo</span>
-    </div>
-
-    
 
     <div id="debug-panel" class="hidden">
         <div class="debug-header">
@@ -191,7 +146,7 @@
             window._loadLog('Loading visual engine...');
             
             // Load scripts in order
-            var scripts = ['assets/visualEngine.js?v=14', 'assets/speech.js', 'assets/ui.js', 'assets/app.js?v=14', 'assets/gameEngine.js?v=14'];
+            var scripts = ['assets/visualEngine.js?v=14', 'assets/speech.js', 'assets/ui.js', 'assets/app.js?v=14', 'assets/gameEngine.js?v=16'];
             var loaded = 0;
             
             function loadNext() {

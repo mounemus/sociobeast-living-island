@@ -46,64 +46,85 @@
     hud.id = 'game-hud';
     if (!HUD_ON) hud.classList.add('hidden');
     hud.innerHTML =
+      '<div id="guardian-labels"></div>' +   // first in DOM: every panel paints over the name labels
       '<div id="hud-top">' +
-      '  <div id="hud-season">🌌 <b>Season <span id="hud-season-n">1</span></b> · <span id="hud-time">🌅</span></div>' +
-      '  <div id="hud-energy"><div class="bar"><div id="hud-energy-fill"></div><span id="hud-energy-txt">Island energy</span></div>' +
-      '    <div id="hud-energy-hint">❤️ likes · 💬 comments · 🎁 gifts → World Event</div></div>' +
-      '  <div id="hud-balance"><span class="bl">🌲 Forest</span><div class="bar"><div id="hud-balance-fill"></div><span id="hud-balance-txt">Balance</span></div><span class="bl">Forge ⚒️</span></div>' +
+      '  <div id="hud-strip" class="row"><span><span class="label" id="hud-ch-num">Chapter 1</span> · <span id="hud-ch-title"></span></span>' +
+      '    <span>Season <b id="hud-season-n">1</b> · <span id="hud-time"></span><span class="pt-hide"> · <span id="hud-spirits" class="num"></span></span></span>' +
+      '    <span id="hud-live" class="' + (DEMO ? 'demo' : '') + '">' + (DEMO ? 'Demo' : 'Live') + '</span></div>' +
+      '  <div id="hud-energy"><div class="bar"><div id="hud-energy-fill"></div></div>' +
+      '    <div class="meta row"><span>Island energy <b id="hud-energy-txt" class="num"></b></span><span class="pt-hide">likes · comments · gifts → world event</span></div></div>' +
+      '  <div id="hud-balance"><span>🌲</span><div class="bar"><div id="hud-balance-fill"></div></div><span>⚒️</span><span id="hud-balance-txt"></span></div>' +
       '  <div id="hud-clans"></div>' +
-      '  <div id="hud-chaos"><div class="bar"><div id="hud-chaos-fill"></div><span>The Curse</span></div></div>' +
+      '  <div id="hud-chaos" class="hidden"><span>The Curse</span><div class="bar"><div id="hud-chaos-fill"></div></div><span id="hud-chaos-txt" class="num"></span></div>' +
+      '  <div id="hud-goal" class="panel row hidden"><span id="hud-ch-goal"></span><span class="dots" id="hud-ch-progress"></span></div>' +
       '</div>' +
-      '<div id="hud-chapter"><div class="ch-top"><span id="hud-ch-num">Chapter 1</span><span id="hud-ch-title">The Sprouting</span></div><div id="hud-ch-goal"></div><div id="hud-ch-progress"></div></div>' +
-      '<div id="hud-boss" class="hidden"><span>🩸 The Blightling</span><div class="bar"><div id="hud-boss-fill"></div></div><span class="sub">heal it with <b>!calm</b> · <b>!pray</b> · rain</span></div>' +
-      '<div id="hud-nature"><div class="hq-title">🌿 Nature plays</div><div id="hud-nature-log"></div></div>' +
-      '<div id="hud-speech" class="hidden"></div>' +
-      '<div id="hud-vote" class="hidden"></div>' +
-      '<div id="hud-quests"></div>' +
-      '<div id="hud-board"></div>' +
+      '<div id="hud-boss" class="panel hidden"><b>The Blightling</b><div class="bar"><div id="hud-boss-fill"></div></div><span class="sub">heal it · <b>!calm</b> · <b>!pray</b> · <b>!rain</b></span></div>' +
+      '<div id="hud-speech" class="panel hidden"></div>' +
+      '<div id="hud-vote" class="panel hidden"></div>' +
+      '<div id="hud-quests" class="panel"></div>' +
+      '<div id="hud-board" class="panel"></div>' +
       '<div id="hud-feed"></div>' +
-      '<div id="hud-toast" class="hidden"></div>' +
+      '<div id="hud-toast" class="panel hidden"></div>' +
       '<div id="hud-banner" class="hidden"></div>' +
-      '<div id="hud-fracture" class="hidden"><div>🩸 THE CURSE SPREADS 🩸</div><div class="sub">type <b>!calm</b> (or <b>!pray</b>) in chat to heal the island</div><div id="hud-fracture-t"></div></div>' +
-      '<div id="hud-cta">Comment <b>!clan grove</b> / <b>forge</b> / <b>fang</b> / <b>veil</b> · <b>!me</b> · <b>!top</b> · vote <b>!1</b> / <b>!2</b></div>' +
-      '<div id="guardian-labels"></div>';
+      '<div id="hud-fracture" class="hidden"><div>The curse spreads</div><div class="sub">type <b>!calm</b> or <b>!pray</b> in chat to heal the island</div><div id="hud-fracture-t"></div></div>' +
+      '<div id="hud-cta"></div>' +
+      '<div id="hud-help"><span>? keys</span><div class="keys">' +
+      '<kbd>H</kbd>hide HUD<br><kbd>G</kbd>test gift<br><kbd>R</kbd>rain<br><kbd>T</kbd>thought<br><kbd>S</kbd>/<kbd>C</kbd>shy / curious<br><kbd>D</kbd>debug<br><kbd>drag</kbd>rotate · <kbd>scroll</kbd>zoom</div></div>';
     document.body.appendChild(hud);
     feedEl = $('hud-feed'); toastEl = $('hud-toast');
+    $('hud-help').addEventListener('click', function() { this.classList.toggle('open'); });
+  }
+
+  // The single call-to-action tells viewers the one thing that matters right now.
+  function renderCta() {
+    const el = $('hud-cta'); let html, cls = '';
+    const dir = game.director;
+    if (game.vote) { html = 'Vote now · type ' + game.vote.options.map(function(_, i) { return '<b>!' + (i + 1) + '</b>'; }).join(' / '); cls = 'vote'; }
+    else if (game.fractured || game.chaos > 60) { html = 'The curse spreads · type <b>!calm</b> or <b>!pray</b> to heal the island'; cls = 'curse'; }
+    else if (dir && dir.boss && dir.boss.active) { html = 'Heal the Blightling · <b>!calm</b> · <b>!pray</b> · <b>!rain</b>'; cls = 'curse'; }
+    else html = 'Join a people · <b>!clan grove</b> / <b>forge</b> / <b>fang</b> / <b>veil</b> · <b>!me</b> · <b>!top</b>';
+    if (el.innerHTML !== html) el.innerHTML = html;
+    el.className = cls;
   }
 
   function renderHud() {
     if (!game) return;
     $('hud-season-n').textContent = game.season;
     const tm = game.islandTime;
-    $('hud-time').textContent = tm < 0.2 ? '🌙 Night' : tm < 0.3 ? '🌅 Dawn' : tm < 0.7 ? '☀️ Day' : tm < 0.8 ? '🌇 Dusk' : '🌙 Night';
+    $('hud-time').textContent = tm < 0.2 ? 'Night' : tm < 0.3 ? 'Dawn' : tm < 0.7 ? 'Day' : tm < 0.8 ? 'Dusk' : 'Night';
+    $('hud-spirits').textContent = (game.guardianCount || 0) + ' spirits';
     const pct = Math.min(100, game.energy / game.energyThreshold * 100);
     $('hud-energy-fill').style.width = pct + '%';
-    $('hud-energy-txt').textContent = '⚡ ' + game.energy + ' / ' + game.energyThreshold + (game.xpMultiplier > 1 ? '  ×' + game.xpMultiplier + ' XP' : '');
-    $('hud-chaos-fill').style.width = game.chaos + '%';
+    $('hud-energy-txt').textContent = game.energy + ' / ' + game.energyThreshold + (game.xpMultiplier > 1 ? ' · ×' + game.xpMultiplier + ' XP' : '');
     if (typeof game.balance === 'number') {
       const pct = (1 - game.balance) / 2 * 100; // 0 = full forest (left), 100 = full forge (right)
       const f = $('hud-balance-fill'); f.style.left = Math.min(pct, 50) + '%'; f.style.width = Math.abs(pct - 50) + '%';
-      f.style.background = game.balance >= 0 ? '#7fd67f' : '#e0a050';
+      f.style.background = game.balance >= 0 ? 'var(--grove)' : 'var(--forge)';
       $('hud-balance-txt').textContent = game.balanceLabel || 'Balance';
       VE.setBalance(game.balance);
     }
-    $('hud-chaos').classList.toggle('danger', game.chaos > 70);
+    // The Curse only shows once it matters
+    const chaos = $('hud-chaos');
+    chaos.classList.toggle('hidden', !(game.chaos > 10 || game.fractured));
+    chaos.classList.toggle('danger', game.chaos > 70);
+    $('hud-chaos-fill').style.width = game.chaos + '%';
+    $('hud-chaos-txt').textContent = Math.round(game.chaos) + '%';
 
-    // Clans
-    const clans = Object.keys(game.clans).map(function(k) { return Object.assign({ key: k }, game.clans[k]); }).sort(function(a, b) { return b.influence - a.influence; });
-    $('hud-clans').innerHTML = clans.map(function(c) {
-      return '<div class="clan" style="--c:' + c.color + '"><span class="ci">' + c.icon + '</span><div class="cbar"><div style="width:' + c.influence + '%"></div></div><span class="cn">' + c.members + '</span></div>';
+    // Clans (stable order: never reshuffle chips under the viewer's eyes)
+    $('hud-clans').innerHTML = Object.keys(game.clans).map(function(k) {
+      const c = game.clans[k];
+      return '<div class="clan panel" style="--c:' + c.color + '" title="' + (c.name || k) + '"><span>' + c.icon + '</span><div class="cbar"><div style="width:' + c.influence + '%"></div></div><span class="cn num">' + c.members + '</span></div>';
     }).join('');
 
     // Quests
-    $('hud-quests').innerHTML = '<div class="hq-title">🎯 Live quests</div>' + (game.quests || []).map(function(q) {
+    $('hud-quests').innerHTML = '<span class="label">Live quests</span>' + (game.quests || []).map(function(q) {
       const p = Math.min(100, (q.progress || 0) / q.target * 100);
-      return '<div class="quest ' + (q.done ? 'done' : '') + '"><span>' + (q.done ? '✅' : '▫️') + ' ' + q.text + '</span><div class="qbar"><div style="width:' + p + '%"></div></div></div>';
+      return '<div class="quest ' + (q.done ? 'done' : '') + '"><div class="row"><span>' + esc(q.text) + '</span><span class="num">' + (q.done ? '✓' : Math.min(q.progress || 0, q.target) + '/' + q.target) + '</span></div><div class="qbar"><div style="width:' + p + '%"></div></div></div>';
     }).join('');
 
     // Leaderboard
-    $('hud-board').innerHTML = '<div class="hq-title">👑 Top guardians</div>' + (game.leaderboard || []).map(function(g, i) {
-      return '<div class="lb"><span class="pos">' + (i + 1) + '</span><span class="nm" style="color:' + g.clanColor + '">' + g.rankIcon + ' ' + esc(g.name) + '</span><span class="xp">' + g.xp + '</span></div>';
+    $('hud-board').innerHTML = '<span class="label">Top guardians</span>' + (game.leaderboard || []).map(function(g, i) {
+      return '<div class="lb"><span class="pos num">' + (i + 1) + '</span><span class="nm" style="color:' + g.clanColor + '">' + esc(g.name) + '</span><span class="xp num">' + g.xp + '</span></div>';
     }).join('');
 
     // Vote
@@ -112,25 +133,29 @@
     if (v) {
       const total = Object.values(v.votes).reduce(function(a, b) { return a + b; }, 0) || 1;
       vb.classList.remove('hidden');
-      vb.innerHTML = '<div class="v-title">🏛️ Council vote · <span>' + v.remaining + 's</span></div><div class="v-q">' + esc(v.question) + '</div>' +
+      vb.innerHTML = '<div class="v-title row"><span class="label">Council vote</span><span class="num">' + v.remaining + 's</span></div><div class="v-q">' + esc(v.question) + '</div>' +
         v.options.map(function(o, i) {
           const n = v.votes[i + 1] || 0;
-          return '<div class="v-opt"><b>!' + (i + 1) + '</b> ' + esc(o) + '<div class="vbar"><div style="width:' + (n / total * 100) + '%"></div></div><span>' + n + '</span></div>';
+          return '<div class="v-opt"><span class="key">!' + (i + 1) + '</span><span>' + esc(o) + '</span><span class="num">' + n + '</span><div class="vbar"><div style="width:' + (n / total * 100) + '%"></div></div></div>';
         }).join('');
     } else vb.classList.add('hidden');
 
-    // Chapter (level), boss, nature log
+    // Chapter (level) + goal, boss. Nature's moves go to the feed (nature_move events).
     const dir = game.director;
     if (dir) {
       const ch = dir.chapter;
       $('hud-ch-num').textContent = 'Chapter ' + ch.number + '/' + ch.total; $('hud-ch-title').textContent = ch.title; $('hud-ch-goal').textContent = ch.goal;
-      $('hud-ch-progress').innerHTML = Object.keys(ch.progress).map(function(k) { const pr = ch.progress[k]; const pct = Math.min(100, pr.value / pr.target * 100); return '<div class="chp"><span>' + k.replace(/_/g, ' ') + '</span><div class="qbar"><div style="width:' + pct + '%"></div></div><span>' + (Math.round(pr.value * 10) / 10) + '/' + pr.target + '</span></div>'; }).join('');
+      const keys = Object.keys(ch.progress || {});
+      $('hud-ch-progress').textContent = keys.map(function(k) { const pr = ch.progress[k]; return pr.value >= pr.target ? '●' : '○'; }).join('');
+      $('hud-goal').classList.toggle('hidden', !ch.goal);
       $('hud-boss').classList.toggle('hidden', !dir.boss.active);
       if (dir.boss.active) $('hud-boss-fill').style.width = (dir.boss.hp / dir.boss.max * 100) + '%';
-      $('hud-nature-log').innerHTML = (dir.log || []).slice(-4).reverse().map(function(l) { return '<div>' + esc(l.line) + '</div>'; }).join('');
       VE.applyUnlocks(ch.unlocks);
       Object.keys(dir.cast || {}).forEach(function(k) { if (k !== 'tall_one') VE.showCharacter(k, !!dir.cast[k].present); });
     }
+    renderCta();
+    // side panels always sit right under the top strip, whatever is shown in it
+    document.documentElement.style.setProperty('--hud-top-h', $('hud-top').offsetHeight + 'px');
 
     // Fracture overlay
     const fr = $('hud-fracture');
@@ -154,7 +179,7 @@
     el.className = 'fitem ' + (cls || '');
     el.innerHTML = html;
     feedEl.prepend(el);
-    while (feedEl.children.length > 7) feedEl.lastChild.remove();
+    while (feedEl.children.length > 4) feedEl.lastChild.remove();
     setTimeout(function() { el.classList.add('fade'); }, 9000);
     setTimeout(function() { el.remove(); }, 10000);
   }
@@ -207,7 +232,7 @@
   // ─────────────────────────────────────────────────────────────
   // EVENT HANDLERS  (server → world)
   // ─────────────────────────────────────────────────────────────
-  function guardianOf(g) { const k = VE.spawnGuardian(g); if (k) activeUntil[g.instanceId] = Date.now() + 45000; return k; }
+  function guardianOf(g) { const k = VE.spawnGuardian(g); if (k) activeUntil[g.instanceId] = Date.now() + 20000; return k; }
 
   function handleEvent(ev) {
     const p = ev.payload || {};
@@ -307,8 +332,8 @@
         break;
       case 'character_speak': {
         const pos = VE.castSpeakFx(p.who);
-        const el = $('hud-speech'); el.innerHTML = '<span class="who" style="color:' + p.color + '">' + p.icon + ' ' + esc(p.name) + '</span>' + esc(p.line);
-        el.style.borderColor = p.color; el.classList.remove('hidden'); clearTimeout(el._t); el._t = setTimeout(function() { el.classList.add('hidden'); }, 9000);
+        const el = $('hud-speech'); el.innerHTML = '<span class="who">' + p.icon + ' ' + esc(p.name) + '</span>' + esc(p.line);
+        el.style.setProperty('--a', p.color); el.classList.remove('hidden'); clearTimeout(el._t); el._t = setTimeout(function() { el.classList.add('hidden'); }, 9000);
         if (window.SpeechSystem && SpeechSystem.speak) { try { SpeechSystem.speak(p.name + ' says: ' + p.line); } catch (e) {} }
         break;
       }
@@ -400,8 +425,8 @@
     const box = $('guardian-labels'); if (!box) return;
     const now = Date.now();
     const list = VE.getGuardians().filter(function(k) {
-      return !k.isVanished && k.currentAlpha > 0.5 && (k.owner.rank === 'legend' || k.owner.rank === 'elder' || (activeUntil[k.id] || 0) > now);
-    }).slice(0, 40);
+      return !k.isVanished && k.currentAlpha > 0.5 && (k.owner.rank === 'legend' || (activeUntil[k.id] || 0) > now);
+    }).slice(0, 14); // ponytail: hard cap keeps the scene readable; raise if legends outgrow it
     const seen = {};
     list.forEach(function(k) {
       const pr = VE.projectToScreen(k.wx, 2.4 * k.s + 0.3, k.wz);
@@ -409,7 +434,7 @@
       let el = labelCache[k.id];
       if (!el) {
         el = document.createElement('div'); el.className = 'glabel'; box.appendChild(el); labelCache[k.id] = el;
-        el.innerHTML = '<span>' + k.owner.rankIcon + '</span> ' + esc(k.owner.name);
+        el.innerHTML = (k.owner.rank === 'legend' ? k.owner.rankIcon + ' ' : '') + esc(k.owner.name);
         el.style.color = k.owner.clanColor;
       }
       el.style.transform = 'translate(-50%,-100%) translate(' + pr.x + 'px,' + pr.y + 'px) scale(' + Math.max(0.6, 1.4 - pr.depth) + ')';
