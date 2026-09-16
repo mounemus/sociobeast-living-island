@@ -1240,7 +1240,7 @@
   }
 
   function setBiome(key) {
-    const hue = { verdant: 0.30, tide: 0.52, ember: 0.08, umbra: 0.75 }[key] || 0.30;
+    const hue = { grove: 0.30, forge: 0.08, fang: 0.98, veil: 0.72 }[key] || 0.30;
     foliageMeshes.forEach(function(f) { const b = f.userData.baseHSL; f.material.color.setHSL(hue + (b.h - 0.30), b.s, b.l); });
     grassMeshes.forEach(function(g) { g.material.color.setHSL(hue, 0.5, 0.25); });
     if (forestGlow) forestGlow.color.setHSL(hue, 0.6, 0.5);
@@ -1308,6 +1308,68 @@
     setTimeout(function() { cameraTarget.set(0, 0, 0); cameraDistance = 45; updateCameraPosition(); }, (seconds || 4) * 1000);
   }
 
+
+  // ═══ v13 — BALANCE (forest ↔ forge), RAIN, THE TALL ONE ═══
+  let currentBalance = 1, targetBalance = 1;
+  const walkers = [];
+  let rainPts = null, rainUntil = 0;
+
+  function setBalance(b) { targetBalance = Math.max(-1, Math.min(1, b)); }
+
+  function applyBalance(b) {
+    // b = +1 lush Ghibli greens, 0 neutral, -1 iron ash (grey-ochre, dead foliage)
+    const t = (1 - b) / 2; // 0 lush … 1 ash
+    foliageMeshes.forEach(function(f) {
+      const base = f.userData.baseHSL;
+      f.material.color.setHSL(base.h * (1 - t) + 0.08 * t, base.s * (1 - t) + 0.15 * t, base.l * (1 - t * 0.5) + 0.02 * t);
+    });
+    grassMeshes.forEach(function(g) { g.material.color.setHSL(0.27 * (1 - t) + 0.09 * t, 0.5 * (1 - t) + 0.2 * t, 0.25 - 0.08 * t); });
+    if (forestGlow) { forestGlow.color.setHSL(0.3 * (1 - t) + 0.07 * t, 0.6, 0.5); forestGlow.intensity = 2 - t; }
+    if (islandTop) islandTop.material.color.setHSL(0.27 * (1 - t) + 0.08 * t, 0.35 * (1 - t) + 0.12 * t, 0.2 - 0.05 * t);
+    if (scene.fog) scene.fog.density = 0.008 + t * 0.006;
+  }
+
+  function startRain(seconds) {
+    if (!rainPts) {
+      const count = 1500, geo = new THREE.BufferGeometry(), pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) { const a = Math.random() * 6.283, d = Math.random() * 40; pos[i * 3] = Math.cos(a) * d; pos[i * 3 + 1] = Math.random() * 40; pos[i * 3 + 2] = Math.sin(a) * d; }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      rainPts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xbfe0ff, size: 0.12, transparent: true, opacity: 0.6, depthWrite: false }));
+      scene.add(rainPts);
+    }
+    rainPts.visible = true; rainUntil = performance.now() + seconds * 1000;
+  }
+
+  function tallOneWalk(seconds) {
+    // An immense, translucent night-walking spirit crosses behind the island (original design)
+    const g = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color: 0x9fd0ff, transparent: true, opacity: 0.16, depthWrite: false });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(6, 10, 70, 24, 1, true), mat); body.position.y = 35; g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(8, 24, 16), mat.clone()); head.position.y = 74; g.add(head);
+    const glow = new THREE.PointLight(0x8fc8ff, 4, 220); glow.position.y = 60; g.add(glow);
+    const stars = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(Array.from({ length: 900 }, function() { return (Math.random() - 0.5) * 16; })), 3)),
+      new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, transparent: true, opacity: 0.8 }));
+    stars.position.y = 40; stars.scale.y = 4.5; g.add(stars);
+    g.position.set(-140, -30, -90); g.userData = { t: 0, dur: seconds || 24 };
+    scene.add(g); walkers.push(g);
+  }
+
+  function updateWalkersAndRain(dt) {
+    if (Math.abs(currentBalance - targetBalance) > 0.002) { currentBalance += (targetBalance - currentBalance) * Math.min(1, dt * 0.4); applyBalance(currentBalance); }
+    if (rainPts && rainPts.visible) {
+      const pos = rainPts.geometry.attributes.position;
+      for (let j = 0; j < pos.count; j++) { let y = pos.getY(j) - dt * 28; if (y < 0) y = 40; pos.setY(j, y); }
+      pos.needsUpdate = true;
+      if (performance.now() > rainUntil) rainPts.visible = false;
+    }
+    for (let i = walkers.length - 1; i >= 0; i--) {
+      const w = walkers[i]; w.userData.t += dt / w.userData.dur; const t = w.userData.t;
+      w.position.x = -140 + t * 280; w.position.y = -30 + Math.sin(t * Math.PI) * 10 + Math.sin(t * 40) * 1.2;
+      w.children[0].material.opacity = 0.16 * Math.sin(t * Math.PI);
+      if (t >= 1) { scene.remove(w); walkers.splice(i, 1); }
+    }
+  }
+
   // ═══ PUBLIC API ═══
   window.VisualEngine = {
     init() {
@@ -1367,6 +1429,7 @@
         t += dt;
         updateAutoRotate(dt);
         updateWorldFx(dt);
+        updateWalkersAndRain(dt);
         tryDuplicate(dt);
         updateVanishBehavior(dt);
         update(dt);
@@ -1403,6 +1466,7 @@
     // ═══ v12 GAME HOOKS ═══
     spawnGuardian, jumpKodama, tintKodama, burst, meteorRain, setTerritories, setBiome, setDayTime, setSky, shake,
     growWorldTree, addFragment, projectToScreen, focusOn,
+    setBalance, startRain, tallOneWalk,
     getKodama(id) { return kodamas.find(function(k) { return k.id === id; }) || null; },
     getGuardians() { return kodamas.filter(function(k) { return k.isGuardian; }); },
     spawnSpirits(n, x, z) { for (let i = 0; i < n; i++) { if (kodamas.length >= MAX_KODAMAS) break; const a = Math.random() * 6.28, d = Math.random() * 3; const k = createKodama((x || 0) + Math.cos(a) * d, (z || 0) + Math.sin(a) * d, 0.3 + Math.random() * 0.6); if (k) { k.currentAlpha = 0; } } },

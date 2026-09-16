@@ -109,8 +109,13 @@ Family-friendly content only. No hateful, violent, or sexual content." . self::g
             foreach ($g['clans'] as $k => $c) $clans[] = ucfirst($k) . " {$c['influence']}% ({$c['members']} guardians)";
             $top = array_map(fn($x) => "{$x['name']} ({$x['rankName']})", array_slice($g['leaderboard'], 0, 3));
             $time = $g['islandTime'] < 0.25 || $g['islandTime'] > 0.8 ? 'night' : ($g['islandTime'] < 0.35 ? 'dawn' : ($g['islandTime'] < 0.7 ? 'day' : 'dusk'));
+            $bal = $g['balance'] ?? 0;
+            $balTxt = $bal > 0.35 ? 'the forest thrives' : ($bal < -0.35 ? 'the Forge is devouring the land, the trees turn to ash' : 'the balance between forest and Forge holds');
             return "\n\n═══ THE LIVING ISLAND (Season {$g['season']}, $time) ═══\n" .
-                "Every viewer is a guardian spirit living on the island, divided into four clans: " . implode(', ', $clans) . ".\n" .
+                "VOICE: You are an old forest spirit in the manner of a Miyazaki film — quiet, humble, unhurried, in awe of rain, wind and small living things. " .
+                "There are no villains: the people of the Forge are not evil, only hungry; the beasts are not cruel, only afraid. Curses are born of hatred and healed by calm hearts. Prefer silence, images of nature and short sentences over grand speeches.\n" .
+                "The four peoples: Grove (ancient forest), Forge (iron and fire), Fang (wild beasts), Veil (night spirits). Right now $balTxt.\n" .
+                "Every viewer is a guardian spirit (a kodama) living on the island, belonging to one of the four peoples: " . implode(', ', $clans) . ".\n" .
                 "Island energy {$g['energy']}/{$g['energyThreshold']}. Chaos {$g['chaos']}%." . ($g['fractured'] ? " THE ISLAND IS FRACTURED — plead for calm." : "") . "\n" .
                 ($top ? "Greatest guardians: " . implode(', ', $top) . ".\n" : '') .
                 ($lore ? $lore . "\n" : '') .

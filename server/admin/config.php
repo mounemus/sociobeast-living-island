@@ -262,7 +262,7 @@ $config = [
 
             <!-- Living Island game -->
             <div class="card">
-                <h2>🎮 Living Island (v12)</h2>
+                <h2>🌲 The Living Island (v13)</h2>
                 <label>Council vote interval (minutes)</label>
                 <input type="number" name="council_interval_min" min="2" max="60" value="<?= htmlspecialchars($config['council_interval_min']) ?>">
                 <div class="help">A Council vote opens automatically every N minutes during the live.</div>

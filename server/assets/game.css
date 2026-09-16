@@ -84,3 +84,11 @@
   #creature-expression { width: 92vw !important; max-width: none !important; left: 4vw !important; bottom: 8px !important; }
   #nav-hint { display: none; }
 }
+
+/* ═══ v13 — balance bar (forest ↔ forge) ═══ */
+#hud-balance { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; font-size: 11px; }
+#hud-balance .bl { opacity: .8; white-space: nowrap; }
+#hud-balance .bar { height: 12px; position: relative; background: linear-gradient(90deg, rgba(127,214,127,.25), rgba(0,0,0,.55) 50%, rgba(224,160,80,.25)); }
+#hud-balance .bar::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.35); }
+#hud-balance-fill { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; transition: left .6s, width .6s; box-shadow: 0 0 10px currentColor; }
+#hud-balance .bar > span { font-size: 9px; }

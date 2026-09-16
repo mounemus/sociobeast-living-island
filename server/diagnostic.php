@@ -1,11 +1,11 @@
 <?php
-// DIAGNOSTIC DÉTAILLÉ v2
+// DETAILED DIAGNOSTIC v2
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-echo "<h1>🔍 Diagnostic Détaillé SocioBeast</h1><pre style='background:#111;color:#0f0;padding:20px;'>";
+echo "<h1>🔍 Detailed Diagnostic SocioBeast</h1><pre style='background:#111;color:#0f0;padding:20px;'>";
 
-// 1. Vérifier structure des dossiers
+// 1. Check folder structure
 echo "=== STRUCTURE ===\n";
 $required = ['includes', 'api', 'assets', 'admin', 'data'];
 foreach ($required as $dir) {
@@ -15,7 +15,7 @@ foreach ($required as $dir) {
 }
 echo "\n";
 
-// 2. Vérifier fichiers includes
+// 2. Check include files
 echo "=== FICHIERS INCLUDES ===\n";
 $includes = ['db.php', 'helpers.php', 'state_engine.php', 'memory_engine.php', 'mythology_engine.php', 'ai_engine.php'];
 foreach ($includes as $file) {
@@ -24,11 +24,11 @@ foreach ($includes as $file) {
 }
 echo "\n";
 
-// 3. Créer dossier data si nécessaire
+// 3. Create data folder if needed
 $dataDir = __DIR__ . '/data';
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0755, true);
-    echo "Créé dossier data/\n";
+    echo "Created data/ folder\n";
 }
 echo "data/ writable: " . (is_writable($dataDir) ? "✅" : "❌") . "\n\n";
 
@@ -43,11 +43,11 @@ try {
         $db = Database::get();
         echo "Connexion: ✅\n";
         
-        // Vérifier tables
+        // Check tables
         $tables = $db->query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
         echo "Tables: " . implode(', ', $tables) . "\n";
     } else {
-        echo "Classe Database: ❌ NON TROUVÉE\n";
+        echo "Classe Database: ❌ NOT FOUND\n";
     }
 } catch (Throwable $e) {
     echo "❌ ERREUR: " . $e->getMessage() . "\n";
@@ -141,28 +141,28 @@ foreach ($assets as $file) {
 }
 echo "\n";
 
-// 10. Résumé
-echo "=== RÉSUMÉ ===\n";
+// 10. Summary
+echo "=== SUMMARY ===\n";
 $allOk = class_exists('Database') && class_exists('StateEngine') && function_exists('getEvolutionInfo');
 if ($allOk) {
-    echo "✅ Tous les tests passent!\n";
-    echo "→ Supprime /data/sociobeast.db et recharge index.php\n";
+    echo "✅ All checks passed!\n";
+    echo "→ Delete /data/sociobeast.db and reload index.php\n";
 } else {
-    echo "❌ Des erreurs ont été détectées ci-dessus.\n";
+    echo "❌ Errors were detected above.\n";
 }
 
 echo "</pre>";
 
-// Bouton pour supprimer la DB
+// Reset database button
 if (isset($_GET['reset_db'])) {
     $dbPath = __DIR__ . '/data/sociobeast.db';
     if (file_exists($dbPath)) {
         unlink($dbPath);
-        echo "<p style='color:green;font-weight:bold;'>✅ Base de données supprimée! Rechargez la page principale.</p>";
+        echo "<p style='color:green;font-weight:bold;'>✅ Database deleted! Reload the main page.</p>";
     } else {
-        echo "<p>Base de données n'existe pas encore.</p>";
+        echo "<p>The database does not exist yet.</p>";
     }
 } else {
-    echo "<p><a href='?reset_db=1' style='background:#c00;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;'>🗑️ Supprimer la base de données et recommencer</a></p>";
+    echo "<p><a href='?reset_db=1' style='background:#c00;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px;'>🗑️ Delete the database et recommencer</a></p>";
 }
 ?>

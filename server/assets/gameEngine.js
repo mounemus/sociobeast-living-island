@@ -50,8 +50,9 @@
       '  <div id="hud-season">🌌 <b>Season <span id="hud-season-n">1</span></b> · <span id="hud-time">🌅</span></div>' +
       '  <div id="hud-energy"><div class="bar"><div id="hud-energy-fill"></div><span id="hud-energy-txt">Island energy</span></div>' +
       '    <div id="hud-energy-hint">❤️ likes · 💬 comments · 🎁 gifts → World Event</div></div>' +
+      '  <div id="hud-balance"><span class="bl">🌲 Forest</span><div class="bar"><div id="hud-balance-fill"></div><span id="hud-balance-txt">Balance</span></div><span class="bl">Forge ⚒️</span></div>' +
       '  <div id="hud-clans"></div>' +
-      '  <div id="hud-chaos"><div class="bar"><div id="hud-chaos-fill"></div><span>Chaos</span></div></div>' +
+      '  <div id="hud-chaos"><div class="bar"><div id="hud-chaos-fill"></div><span>The Curse</span></div></div>' +
       '</div>' +
       '<div id="hud-vote" class="hidden"></div>' +
       '<div id="hud-quests"></div>' +
@@ -59,8 +60,8 @@
       '<div id="hud-feed"></div>' +
       '<div id="hud-toast" class="hidden"></div>' +
       '<div id="hud-banner" class="hidden"></div>' +
-      '<div id="hud-fracture" class="hidden"><div>⚡ THE ISLAND IS FRACTURING ⚡</div><div class="sub">type <b>!calm</b> in chat to heal it</div><div id="hud-fracture-t"></div></div>' +
-      '<div id="hud-cta">Comment <b>!clan ember</b> · <b>!me</b> · <b>!top</b> · vote <b>!1</b> / <b>!2</b></div>' +
+      '<div id="hud-fracture" class="hidden"><div>🩸 THE CURSE SPREADS 🩸</div><div class="sub">type <b>!calm</b> (or <b>!pray</b>) in chat to heal the island</div><div id="hud-fracture-t"></div></div>' +
+      '<div id="hud-cta">Comment <b>!clan grove</b> / <b>forge</b> / <b>fang</b> / <b>veil</b> · <b>!me</b> · <b>!top</b> · vote <b>!1</b> / <b>!2</b></div>' +
       '<div id="guardian-labels"></div>';
     document.body.appendChild(hud);
     feedEl = $('hud-feed'); toastEl = $('hud-toast');
@@ -75,6 +76,13 @@
     $('hud-energy-fill').style.width = pct + '%';
     $('hud-energy-txt').textContent = '⚡ ' + game.energy + ' / ' + game.energyThreshold + (game.xpMultiplier > 1 ? '  ×' + game.xpMultiplier + ' XP' : '');
     $('hud-chaos-fill').style.width = game.chaos + '%';
+    if (typeof game.balance === 'number') {
+      const pct = (1 - game.balance) / 2 * 100; // 0 = full forest (left), 100 = full forge (right)
+      const f = $('hud-balance-fill'); f.style.left = Math.min(pct, 50) + '%'; f.style.width = Math.abs(pct - 50) + '%';
+      f.style.background = game.balance >= 0 ? '#7fd67f' : '#e0a050';
+      $('hud-balance-txt').textContent = game.balanceLabel || 'Balance';
+      VE.setBalance(game.balance);
+    }
     $('hud-chaos').classList.toggle('danger', game.chaos > 70);
 
     // Clans
@@ -216,12 +224,12 @@
       case 'world_event': worldEvent(p); break;
       case 'fracture':
         skyOverride = true; VE.setSky(SKY.fracture); VE.shake(1.2); VE.vanishHalf();
-        banner('⚡ <b>FRACTURE #' + p.number + '</b> — the island is breaking. <b>!calm</b>', 8000, 'fracture');
-        if (window.SocioBeast) SocioBeast.requestSpeech('reactive', { force: true, context: 'The island is fracturing from chaos! Beg the humans to calm the storm.' });
+        banner('🩸 <b>CURSE OUTBREAK #' + p.number + '</b> — hatred spreads through the roots. <b>!calm</b>', 8000, 'fracture');
+        if (window.SocioBeast) SocioBeast.requestSpeech('reactive', { force: true, context: 'A curse born of hatred is spreading through the island. Ask the humans, without anger, to calm their hearts.' });
         break;
       case 'fracture_healed':
         skyOverride = false; VE.triggerCuriousMode();
-        banner('💚 The island is healed' + (p.by !== 'time' ? ' by <b>' + esc(p.by) + '</b>' : '') + ' · <b>×2 XP</b> for 2 min', 6000, 'heal');
+        banner('💚 The curse lifts' + (p.by !== 'time' ? ' — <b>' + esc(p.by) + '</b> calmed the island' : '') + ' · <b>×2 XP</b> for 2 min', 6000, 'heal');
         VE.burst(0, 1, 0, 300, 0x90ff90, { spread: 20, speed: 3, up: 6, size: 0.25, life: 4 });
         break;
       case 'council_open':
@@ -291,24 +299,25 @@
     const c = game && game.clans[p.clan];
     banner((c ? c.icon : '') + ' Clan <b style="color:' + (c ? c.color : '#fff') + '">' + p.clan + '</b> unleashes <b>' + esc(p.name) + '</b>', 7000, 'power');
     switch (p.power) {
-      case 'bloom': VE.burst(0, 0.5, 0, 800, 0xffb0e0, { spread: 50, speed: 0.5, up: 2, size: 0.2, life: 6, gravity: 0.5 }); break;
-      case 'tide': VE.burst(0, 5, 0, 600, 0x80e0ff, { spread: 50, speed: 1, up: 3, size: 0.25, life: 6, gravity: 1 }); VE.triggerCuriousMode(); break;
-      case 'comet': VE.meteorRain(8, 0xff9a4a); VE.allDance(); break;
-      case 'eclipse': skyOverride = true; VE.setSky(SKY.eclipse); setTimeout(function() { skyOverride = false; }, 20000); break;
+      case 'green_tide': VE.burst(0, 0.5, 0, 900, 0xb0ffb0, { spread: 50, speed: 0.5, up: 2, size: 0.2, life: 6, gravity: 0.5 }); VE.triggerCuriousMode(); break;
+      case 'iron_bell': VE.meteorRain(6, 0xff9a4a); VE.shake(0.5); skyOverride = true; VE.setSky(0x2a1a0a); setTimeout(function() { skyOverride = false; }, 12000); break;
+      case 'the_hunt': VE.triggerShyMode(); setTimeout(function() { VE.triggerCuriousMode(); VE.allDance(); }, 4000); break;
+      case 'spirit_veil': skyOverride = true; VE.setSky(SKY.eclipse); VE.burst(0, 6, 0, 500, 0xc0c0ff, { spread: 40, speed: 0.6, up: 1, size: 0.2, life: 8, gravity: 0.2 }); setTimeout(function() { skyOverride = false; }, 20000); break;
     }
   }
 
   function worldEvent(p) {
-    const names = { aurora: '🌈 Aurora', world_tree: '🌳 The World-Tree awakens', star_rain: '☄️ Star rain', great_eclipse: '🌑 Great Eclipse', prophecy: '🔮 Prophecy' };
+    const names = { spirit_lights: '🌈 Spirit Lights', mother_tree: '🌳 The Mother Tree awakens', firefly_migration: '✨ Firefly Migration', tall_one: '🌑 The Tall One passes', first_rain: '🌧️ The First Rain', prophecy: '🔮 Prophecy' };
     banner('<b>WORLD EVENT' + (p.number ? ' #' + p.number : '') + '</b> — ' + (names[p.event] || p.event), 9000, 'world');
     switch (p.event) {
-      case 'aurora': skyOverride = true; VE.setSky(SKY.aurora); VE.allDance(); auroraCss(15000); setTimeout(function() { skyOverride = false; }, 15000); break;
-      case 'world_tree': VE.growWorldTree(); break;
-      case 'star_rain': VE.meteorRain(10, 0xffffff); VE.spawnSpirits(20, 0, 0); break;
-      case 'great_eclipse':
-        skyOverride = true; VE.setSky(0x000000); VE.triggerShyMode(); VE.vanishHalf();
-        setTimeout(function() { VE.triggerCuriousMode(); VE.setSky(SKY.dawn); VE.burst(0, 1, 0, 600, 0xffffff, { spread: 30, speed: 2, up: 5, size: 0.25, life: 5 }); }, 8000);
-        setTimeout(function() { skyOverride = false; }, 14000);
+      case 'spirit_lights': skyOverride = true; VE.setSky(SKY.aurora); VE.allDance(); auroraCss(15000); setTimeout(function() { skyOverride = false; }, 15000); break;
+      case 'mother_tree': VE.growWorldTree(); break;
+      case 'firefly_migration': VE.burst(0, 4, 0, 1200, 0xccff99, { spread: 60, speed: 1.5, up: 2, size: 0.22, life: 10, gravity: 0.1 }); VE.spawnSpirits(20, 0, 0); break;
+      case 'first_rain': VE.startRain(25); skyOverride = true; VE.setSky(0x0a1420); setTimeout(function() { skyOverride = false; }, 25000); VE.triggerCuriousMode(); break;
+      case 'tall_one':
+        skyOverride = true; VE.setSky(0x03040c); VE.triggerShyMode(); VE.tallOneWalk(26);
+        setTimeout(function() { VE.triggerCuriousMode(); VE.burst(0, 1, 0, 600, 0xdfffff, { spread: 30, speed: 2, up: 5, size: 0.25, life: 5 }); }, 20000);
+        setTimeout(function() { skyOverride = false; }, 28000);
         break;
       case 'prophecy': skyOverride = true; VE.setSky(0x100a20); setTimeout(function() { skyOverride = false; }, 12000); break;
     }
@@ -328,6 +337,7 @@
       case 'feed': VE.burst(0, 1, 0, 200, 0xffe0a0, { spread: 10, speed: 2, up: 3, size: 0.2 }); feed('🍃 <b>' + esc(by) + '</b> fed the spirits'); break;
       case 'chaos': VE.shake(0.6); feed('🌀 <b>' + esc(by) + '</b> stirred chaos'); break;
       case 'sleep': VE.setSky(SKY.night); feed('😴 <b>' + esc(by) + '</b> sang a lullaby'); break;
+      case 'rain': VE.startRain(15); feed('🌧️ <b>' + esc(by) + '</b> called the rain'); break;
     }
   }
 
@@ -364,7 +374,7 @@
   // ─────────────────────────────────────────────────────────────
   function startDemoAudience() {
     const names = ['luna_qc', 'maxou3d', 'sakura.dev', 'kodama_fan', 'elise_mtl', 'nova_star', 'pixel_pierre', 'zoe.ai', 'mira_ubmaker', 'felix_lab', 'ambre_x', 'yuki_san'];
-    const cmds = ['!clan ember', '!clan tide', '!clan umbra', '!me', '!top', '!dance', '!1', '!2', '!calm', 'so cute', '!quest', '!summon', '!seek'];
+    const cmds = ['!clan forge', '!clan fang', '!clan veil', '!me', '!top', '!dance', '!1', '!2', '!calm', 'so cute', '!quest', '!summon', '!seek', '!rain'];
     const gifts = [['Rose', 1], ['Finger Heart', 5], ['Hand Hearts', 100], ['Galaxy', 1000]];
     console.log('[Game] demo audience running');
     setInterval(function() {
@@ -383,6 +393,7 @@
   // Keyboard: H toggles HUD, E ends season (admin), G simulates a Galaxy gift
   document.addEventListener('keydown', function(e) {
     if (e.key === 'h' || e.key === 'H') $('game-hud').classList.toggle('hidden');
+    if (e.key === 'r' || e.key === 'R') VE.startRain(15);
     if (e.key === 'g' || e.key === 'G') fetch('api/game.php', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'demo_event', type: 'gift', username: 'streamer_test', giftName: 'Galaxy', coins: 1000 }) });
   });

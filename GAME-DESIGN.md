@@ -1,213 +1,195 @@
-# 🌌 SOCIOBEAST GENESIS v12 — « THE LIVING ISLAND »
-### Game Design Document · TikTok Live Edition
+# 🌲 SOCIOBEAST — THE LIVING ISLAND
+### Game Design Document · v13 "Kodama Grove" · TikTok Live Edition
 
-> **Pitch en une phrase** : Une île flottante dans le vide cosmique dont chaque créature *est* un spectateur.
-> Le public ne regarde pas un Tamagotchi — **le public est l'écosystème**. Ce qu'il fait ensemble
-> pendant le live sculpte l'île, écrit sa mythologie, et le stream suivant hérite de tout.
+> **One-line pitch**: A floating island of ancient forest drifting through the cosmos, where **every TikTok viewer becomes a kodama** — a small tree spirit. Four peoples share the island: the Grove, the Forge, the Fang and the Veil. The audience does not watch a pet; **the audience is the ecosystem**, and what it does together during the live tips the balance between forest and iron, writes the island's mythology, and is inherited by the next live.
 
 ---
 
-## 1. Le renversement conceptuel
+## 1. Inspiration & tone
 
-| Avant (v11) | Maintenant (v12) |
+The universe takes its *spirit* from Hayao Miyazaki's films — above all the moral world of *Princess Mononoke* — without borrowing its characters:
+
+| Miyazaki principle | How the game lives it |
 |---|---|
-| 1 créature IA + clones décoratifs | **Chaque spectateur possède un esprit** (Kodama gardien) lié à son pseudo TikTok |
-| Le public envoie des commandes | Le public **est réparti en 4 clans** qui se disputent l'île |
-| Émotions internes invisibles | **Météo cosmique** = émotion collective rendue visible (aurore, éclipse, pluie de météores) |
-| Stream = session isolée | **Saisons persistantes** : chaque live est un chapitre, la mythologie est un livre qui s'écrit |
-| Pas d'objectif | **Barre d'énergie de l'île** (objectif commun) + **quêtes** + **votes qui bifurquent le lore** |
+| **No villains** — only hunger, fear and pride | The Forge is not evil; it feeds people. The Fang are not cruel; they are afraid. Every people has a motto and a point of view. The Beast's AI voice is instructed never to name an enemy. |
+| **Nature is a character, not a backdrop** | The island has a **Balance** (forest ↔ forge). Trees green up or turn to ash in real time depending on what the audience does. |
+| **Curses are born of hatred** | Spam and industrial pressure raise **the Curse**. It spreads through the roots; the chat heals it by calming down (`!calm`, `!pray`, `!breathe`), not by fighting. |
+| **Awe and silence** ("ma") | The **Tall One** — an immense, translucent night-walking spirit — crosses behind the island. Everything goes quiet. The Beast speaks in short sentences. |
+| **Small things matter** | Kodama vanish and reappear on their own. Fireflies migrate. Rain washes the curse. Growth is slow and visible. |
+| **Hand-painted palette** | Soft greens, ochre iron, indigo nights, pale-blue rain, warm dawns. |
+
+Visual assets and names are original: the kodama model belongs to UbMaker; "kodama" itself is a Japanese folklore term for tree spirits.
 
 ---
 
-## 2. Boucle de jeu (core loop)
+## 2. Core loop
 
 ```
-  Spectateur arrive ─► son Kodama naît (nom flottant, teinte de clan)
+  A viewer appears ─► their kodama sprouts (name floating above, tint of their people)
         │
         ▼
-  Il interagit (like / commentaire / cadeau / partage)
+  They interact (like / comment / gift / share / follow)
         │
-        ├─► son Kodama gagne de l'XP ─► Wisp → Spirit → Elder → Legend (taille, aura, couronne)
-        ├─► son CLAN gagne de l'influence ─► le territoire du clan grandit sur l'île
-        ├─► la barre d'ÉNERGIE DE L'ÎLE monte ─► ÉVÉNEMENT MONDIAL quand pleine
-        └─► le Beast (esprit primordial) réagit, commente, se souvient
-        │
-        ▼
-  Toutes les ~8 min : VOTE DU CONSEIL ("!1 / !2") ─► décision gravée dans la mythologie
+        ├─► their kodama gains XP ─► Sprout → Kodama → Elder → Guardian (size, aura, crown)
+        ├─► their PEOPLE gains influence ─► its quarter of the island glows
+        ├─► the island's ENERGY rises ─► a WORLD EVENT awakens when full
+        ├─► the BALANCE shifts: forest peoples vs the Forge ─► trees green or turn to ash
+        └─► the Beast (the island's old spirit) reacts, remembers, dreams
         │
         ▼
-  Fin du live : SAISON clôturée ─► clan vainqueur remodèle le biome ─► PROPHÉTIE pour le prochain live
+  Every ~8 min: the COUNCIL ("!1 / !2 / !3") ─► a decision carved into the island's lore
+        │
+        ▼
+  End of the live: SEASON closes ─► the winning people reshapes the biome ─► a PROPHECY for next time
 ```
 
 ---
 
-## 3. Les 4 Clans
+## 3. The four peoples
 
-Un spectateur rejoint un clan à sa première interaction (auto-assigné au clan le plus faible pour l'équilibre, ou `!clan ember`).
+Viewers are auto-assigned to the smallest people on first interaction; `!clan forge` etc. lets them move once per season.
 
-| Clan | Élément | Teinte Kodama | Territoire | Pouvoir de clan (déclenché à 100 % d'influence) |
-|---|---|---|---|---|
-| 🌿 **Verdant** | Nature | Vert mousse | Nord | **Floraison** : l'île se couvre de fleurs, +XP pour tous |
-| 🌊 **Tide** | Eau | Bleu lagon | Est | **Marée cosmique** : pluie de lucioles, tous les esprits cachés reviennent |
-| 🔥 **Ember** | Feu | Orange braise | Sud | **Comète** : pluie de météores, double XP 60 s |
-| 🌙 **Umbra** | Ombre | Violet nuit | Ouest | **Éclipse** : nuit totale, le Beast révèle un secret / une prophétie |
+| People | Element | Side | Tint | Quarter | Power at 100 % influence |
+|---|---|---|---|---|---|
+| 🌲 **Grove** | Ancient forest | forest | moss green | North | **Green Tide** — the whole island blooms, everyone +10 XP, the curse recedes |
+| ⚒️ **Forge** | Iron & fire | industry | ochre | East | **Iron Bell** — embers rain, ×2 XP for 60 s… and the curse grows by 10 |
+| 🐺 **Fang** | Wild beasts | forest | crimson | South | **The Hunt** — every spirit scatters, then charges back together; ×1.5 XP for 90 s |
+| 🌙 **Veil** | Night spirits | forest | indigo | West | **Spirit Veil** — the sky goes dark, the Beast delivers a prophecy |
 
-L'influence de clan est un **score relatif** : elle décroît lentement (−1 %/min) pour forcer l'engagement continu.
+Influence decays 1 %/min, so a people must keep acting to hold its power.
 
 ---
 
-## 4. Économie des cadeaux TikTok → Sorts
+## 4. Balance — the heart of the game
 
-Les cadeaux TikTok ont une valeur en pièces (`diamondCount`). Ils sont convertis en **sorts** par palier :
+```
+balance = (avg influence of Grove, Fang, Veil  −  influence of Forge) / 60      ∈ [−1 … +1]
+```
 
-| Palier | Pièces | Sort déclenché | Effet visuel |
+- **+1 · "The forest thrives"** — lush greens, warm forest glow, thin mist.
+- **0 · "Balance holds"** — the Miyazaki ideal: nobody wins, everyone lives.
+- **−1 · "The Forge devours the land"** — foliage turns grey-ochre, the ground darkens, the mist thickens, and **the curse rises by 1.5 %/min** while the Forge holds more than 75 % influence.
+
+Balance is shown on a two-sided bar in the HUD (🌲 ← → ⚒️) and drives the foliage colour of every tree in real time. The Forge being *useful* (×2 XP) but *dangerous* (curse) is the central tension: the audience decides how much industry the island can bear.
+
+---
+
+## 5. Gifts → spells
+
+TikTok gifts are converted by coin value:
+
+| Tier | Coins | Spell | What happens |
 |---|---|---|---|
-| ✨ Étincelle | 1–9 | **Bénédiction** | Le Kodama du donateur brille + saute |
-| 🌸 Éveil | 10–99 | **Floraison locale** | Fleurs autour du donateur + 3 esprits naissent |
-| 🌧️ Tempête | 100–499 | **Météo** | Pluie de lucioles / brume, +20 % énergie île |
-| ☄️ Cosmique | 500–4 999 | **Pluie de météores** | Météores, tous les esprits dansent, Kodama du donateur → Elder |
-| 🌌 Genèse | 5 000+ | **Nouvelle terre** | **Un fragment d'île permanent** apparaît, nommé d'après le donateur, inscrit dans la mythologie |
-
-> Le donateur de palier Cosmique+ devient **Légende** : son nom est cité dans les mythes générés par l'IA.
+| ✨ Ember | 1–9 | Blessing | The giver's kodama glows and jumps |
+| 🌸 Seed | 10–99 | Local bloom | Flowers burst around the giver; 3 spirits sprout |
+| 🌧️ Rainfall | 100–499 | Weather | A firefly storm; +20 % island energy |
+| 🐺 Great Howl | 500–4 999 | Meteor rain | Every spirit dances; the giver becomes an Elder; ×2 XP 60 s |
+| 🌳 New Grove | 5 000+ | New land | A **permanent island fragment** named *"Grove of <giver>"* appears and enters the mythology |
 
 ---
 
-## 5. Objectif commun : la Barre d'Énergie de l'Île
+## 6. Island energy → World Events
 
-- Se remplit avec **likes** (+1), **commentaires** (+3), **partages** (+15), **follows** (+25), cadeaux (+valeur).
-- À 100 % → **Événement Mondial** aléatoire pondéré par l'émotion collective :
+Likes +1 · comments +3 · shares +15 · follows +25 · gifts +coins. When the bar fills, an event awakens, weighted by the Beast's dominant emotion (and by the curse):
 
-| Émotion dominante | Événement |
-|---|---|
-| Joie | 🌈 **Aurore boréale** — le ciel s'embrase, tous les esprits chantent |
-| Curiosité | 🌳 **L'Arbre-Monde s'éveille** — un arbre géant pousse au centre, révèle un mythe |
-| Excitation | ☄️ **Pluie d'étoiles** — spawn massif ×20 |
-| Solitude | 🌑 **Grande Éclipse** — tout disparaît, puis renaît (reset visuel dramatique) |
-| Inspiration | 🔮 **Prophétie** — le Beast prédit le prochain live |
+| Event | Trigger | On screen |
+|---|---|---|
+| 🌈 **Spirit Lights** | joy | Aurora over the island, every spirit sings |
+| 🌳 **The Mother Tree awakens** | curiosity | A giant tree grows at the centre; the Beast tells a legend |
+| ✨ **Firefly Migration** | excitement | 1 200 fireflies sweep across; 20 spirits sprout |
+| 🌑 **The Tall One passes** | loneliness | Night falls; an immense translucent spirit crosses behind the island for 26 s; spirits hide, then return |
+| 🌧️ **The First Rain** | curse > 50 % (50 % chance) | Rain for 25 s; the curse drops by 40 |
+| 🔮 **Prophecy** | inspiration | The Beast foretells the next live |
 
-- Après l'événement, la barre repart à 0 avec un **seuil +25 %** (difficulté croissante dans le live).
-
----
-
-## 6. Le Compteur de Chaos (tension)
-
-Trop d'interactions trop vite (> 60 events / 10 s) → **Chaos** monte.
-- 50 % : les esprits tremblent, la caméra vibre
-- 80 % : **Panique** — 50 % des esprits se cachent (système vanish), le ciel vire rouge
-- 100 % : **Fracture** — l'île se fissure, 30 s de silence, le Beast demande `!calm`
-
-Le chat doit spammer **`!calm`** (chaque commande −5 %). Résolution → bonus XP collectif ×2.
-→ Mécanique qui crée des **moments mémorables** et des clips viraux.
+The threshold grows +25 % after each event.
 
 ---
 
-## 7. Votes du Conseil (narration branchée)
+## 7. The Curse (tension)
 
-Toutes les 8 minutes (configurable), le Beast pose une question à 2-3 choix. Vote par `!1`, `!2`, `!3`.
+- More than 60 interactions in 10 s → the curse rises (+2 per event).
+- Forge > 75 % influence → +1.5 %/min. Iron Bell → +10.
+- **50 %**: spirits tremble, the camera shivers. **80 %**: the sky bleeds red.
+- **100 % · Curse Outbreak**: half the spirits hide, the island stops earning for 30 s, a red overlay pleads for calm.
+- The chat heals it: `!calm` / `!pray` / `!breathe` (−5 each), Green Tide (−15), First Rain (−40), or time (−3 %/min).
+- Healing rewards everyone with ×2 XP for 2 minutes.
 
-Exemples :
-- *« Une étoile filante s'écrase sur l'île. La toucher ou l'enterrer ? »*
-- *« Le clan Umbra propose une alliance à Verdant. Accepter ? »*
-- *« Un esprit ancien demande à dormir mille ans. Le laisser ? »*
-
-Le résultat est **écrit dans la table `lore_decisions`** et injecté dans les prompts IA → les mythes, rêves et prophéties suivants en tiennent compte. **Le lore devient un livre dont le public a écrit chaque page.**
+Outbreaks are designed to be *the* clip-able moments of a live.
 
 ---
 
-## 8. Progression du Gardien (spectateur)
+## 8. The Council (branching lore)
 
-| Rang | XP | Apparence du Kodama | Privilège |
+Every 8 minutes (configurable in `/admin`), the Beast asks a question in the moral register of the film. Vote with `!1`, `!2`, `!3` (90 s):
+
+- *The Forge asks to cut the eastern grove for iron. What does the island say?* — Allow / Refuse / Offer only fallen wood
+- *A wounded boar-spirit drags a curse to the shore. Heal it or drive it away?*
+- *A human child raised by wolves asks to live on the island. Welcome them?* — Welcome / Send home / Let the wolves decide
+- *The Mother Tree's spring is drying. Divert the Forge's river?* — Divert / Let the Forge keep it / Dig a new spring together
+- *Hunters seek the head of the Tall One, believing it grants eternal life. Warn it?*
+- *The night spirits ask for one hour of silence. Grant it?*
+- *Should the island bear a name?* — Aether / Kodamaya / Leave it nameless
+
+Decisions are stored in `lore_decisions` and injected into every AI prompt: myths, dreams and prophecies reference what the audience chose. **The lore is a book the audience writes one page at a time.**
+
+---
+
+## 9. Guardian progression (per viewer, persistent across lives)
+
+| Rank | XP | Look | Privilege |
 |---|---|---|---|
-| 🌫️ Wisp | 0 | Petit, translucide | — |
-| 👻 Spirit | 50 | Taille normale, teinte de clan | Nom affiché |
-| 🧙 Elder | 300 | Grand, aura lumineuse | Peut lancer `!summon` (fait naître un esprit) |
-| 👑 Legend | 1 500 | Couronne de particules, ne disparaît jamais | Cité dans la mythologie, `!decree` (proposer un vote) |
+| 🌱 Sprout | 0 | small, translucent | — |
+| 👻 Kodama | 50 | full size, tint of its people | name shown |
+| 🍃 Elder | 300 | large, glowing aura, never vanishes | `!summon` sprouts 2 spirits |
+| 👑 Guardian | 1 500 | crown of light | cited in the mythology, `!decree` opens a Council vote, `!summon` sprouts 5 |
 
-XP : like +1 · commentaire +3 · partage +10 · follow +20 · cadeau +valeur/2.
-**Persistant entre les lives** (table `guardians`). Revenir = retrouver *son* esprit.
-
----
-
-## 9. Commandes chat
-
-| Commande | Effet |
-|---|---|
-| `!me` | Le Beast présente ton esprit (rang, clan, XP) |
-| `!clan <verdant/tide/ember/umbra>` | Rejoindre / changer de clan (1× par live) |
-| `!top` | Affiche le top 5 gardiens |
-| `!feed` `!dance` `!hide` `!seek` | Actions collectives (existantes v11) |
-| `!calm` | Réduit le Chaos |
-| `!1` `!2` `!3` | Voter |
-| `!summon` | (Elder+) Fait naître un esprit |
-| `!quest` | Affiche la quête active |
-| `!lore` | Le Beast raconte la dernière décision du conseil |
+XP: like +1 · comment +3 · share +10 · follow +20 · gift +coins/2. Returning viewers find *their* kodama waiting.
 
 ---
 
-## 10. Quêtes de live
+## 10. Chat commands
 
-3 quêtes tirées au hasard à l'ouverture du live, affichées dans le HUD :
+`!clan grove|forge|fang|veil` · `!me` · `!top` · `!quest` · `!lore` · `!calm` `!pray` `!breathe` · `!1 !2 !3` · `!summon` (Elder+) · `!decree` (Guardian) · `!feed !dance !hide !seek !rain !sleep`
 
-- 🎯 « Atteindre **1 000 esprits** sur l'île »
-- 🎯 « **20 nouveaux gardiens** rejoignent l'île »
-- 🎯 « Survivre à **2 Fractures** »
-- 🎯 « Le clan **Tide** atteint 100 % »
-- 🎯 « **50 votes** au Conseil »
+## 11. Live quests
+Three drawn per live from: reach 1 000 spirits · 20 new guardians · survive 2 outbreaks · 50 Council votes · awaken 3 World Events · 2 000 likes · a people reaches 100 % · call the First Rain. Completing one grants ×1.5 XP for 5 minutes and a Firefly Migration.
 
-Quête réussie → **récompense collective** (événement mondial gratuit) + XP ×1.5 pendant 5 min.
+## 12. Day, night, seasons
+An island day lasts 45 real minutes (dawn → day → dusk → night). At night the light turns indigo and the Beast dreams. A **season = one live**; at the end (`/admin` → *End season*) the people with the most XP reshapes the biome — a Forge victory leaves an ochre, ash-toned island for the next live, a Grove victory a lush one. Seasons and their winners are recorded.
 
 ---
 
-## 11. Cycle jour/nuit & Saisons
-
-- **Journée de l'île = 45 min réels.** Aube → jour → crépuscule → nuit.
-- La nuit : les esprits dorment, la lumière devient bleue, le Beast **rêve** (génère un rêve à partir des événements du live) — moment calme, contemplatif, idéal pour les segments « lore ».
-- **Saison = 1 live.** À la clôture (`!endseason` admin) : le clan vainqueur **remodèle le biome** (palette d'arbres/herbe/lumière) pour le live suivant. Umbra → forêt violette bioluminescente, Ember → savane ambrée, etc.
-
----
-
-## 12. Architecture technique
+## 13. Architecture
 
 ```
  TikTok LIVE ──► bridge/tiktok-bridge.js (Node · tiktok-live-connector)
-                          │  normalise: like/comment/gift/follow/share/join
+                          │  normalises like/comment/gift/follow/share/join, batches every 0.8 s
                           ▼  POST + secret
-                  api/tiktok.php ──► includes/game_engine.php ──► SQLite
-                                        │  (clans, gardiens, énergie,
-                                        │   chaos, votes, quêtes, saisons)
+                  server/api/tiktok.php ──► includes/game_engine.php ──► SQLite
+                                        │  (peoples, guardians, energy, balance,
+                                        │   curse, council, quests, seasons)
                                         ▼
-                  api/game.php ◄──── poll 1.5 s ──── assets/gameEngine.js
-                  (state + file d'événements)          │
-                                                       ├─► VisualEngine (Three.js)
-                                                       │    gardiens nommés, teintes clan,
-                                                       │    météo cosmique, fragments d'île
-                                                       └─► HUD stream (assets/game.css)
-                                                            barre énergie, clans, votes,
-                                                            leaderboard, quêtes, chaos
+                  server/api/game.php ◄── poll 1.5 s ── assets/gameEngine.js
+                                                       │
+                                                       ├─► visualEngine.js (Three.js): named kodama, balance-driven
+                                                       │    foliage, rain, the Tall One, fragments, fireflies
+                                                       └─► HUD 9:16 (game.css): energy, balance, peoples,
+                                                            curse, council, quests, leaderboard
+ web/mock-api.js ── the same engine, in the browser (localStorage) ── Vercel demo
 ```
 
-- **Zéro WebSocket requis** côté hébergement PHP mutualisé : le bridge Node tourne sur n'importe quelle machine (PC du streamer, VPS Hetzner déjà en place) et pousse en HTTP.
-- **Mode démo** : `?demo=1` simule un public TikTok (bots) pour tester sans live.
-- **OBS** : capturer la page en source navigateur 1080×1920 (portrait TikTok). Le HUD est conçu pour le format vertical.
+- No WebSocket needed on the PHP host: the bridge pushes over HTTP from any machine.
+- `?demo=1` simulates an audience; `H` toggles the HUD, `G` fires a test Great Howl, `R` calls rain.
+- OBS: browser source at 1080×1920.
 
 ---
 
-## 13. Pourquoi ça marche sur TikTok Live
+## 14. Why it works on TikTok Live
+1. **Your name on your creature** — instant attachment, a reason to come back.
+2. **Four peoples with a real dilemma** — the Forge is tempting (×2 XP) but poisons the land; gifting becomes a moral choice, not just generosity.
+3. **Outbreaks and the Tall One** — dramatic, clip-able, shareable.
+4. **A lore written by votes** — a reason to type, not just tap.
+5. **Persistence** — lives become episodes of one long story.
 
-1. **Chaque spectateur voit *son* nom sur *sa* créature** → attachement immédiat, revient au live suivant.
-2. **Les clans** créent de la rivalité → les cadeaux deviennent tactiques, pas juste généreux.
-3. **Les Fractures** créent des moments de crise → clips, partages, « vous avez raté ça ».
-4. **Le lore branché** donne une raison d'écrire dans le chat au-delà des emojis.
-5. **La persistance** transforme des lives isolés en **série** avec une histoire continue.
-
----
-
-## 14. Roadmap
-
-| Phase | Contenu |
-|---|---|
-| **v12.0 (livrée)** | Bridge TikTok, gardiens, clans, énergie, chaos, votes, quêtes, HUD, mode démo |
-| v12.1 | Fragments d'île permanents (cadeaux Genèse), biomes de saison |
-| v12.2 | Voix du Beast (TTS) qui commente les votes en direct ; cartes des gardiens partageables (image générée) |
-| v12.3 | Multi-plateforme : YouTube Live + Twitch via le même bridge |
-| v13 | Marketplace : skins de Kodama achetables, NFT-free, revenus streamer/UbMaker |
+## 15. Roadmap
+**v13.1** wind on grass, seasonal weather · **v13.2** the Beast's voice (TTS) narrating Council results, shareable guardian cards · **v13.3** YouTube / Twitch bridges · **v14** original creature-skin marketplace (UbMaker).

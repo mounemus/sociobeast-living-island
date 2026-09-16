@@ -6,47 +6,51 @@
  */
 (function() {
   'use strict';
-  const LS = 'sociobeast_demo_v1';
+  const LS = 'sociobeast_demo_v13';
   const now = () => Math.floor(Date.now() / 1000);
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = a => a[Math.floor(Math.random() * a.length)];
 
   const CLANS = {
-    verdant: { name: 'Verdant', icon: '🌿', color: '#7fd67f', quadrant: 0, power: 'bloom', power_name: 'Floraison' },
-    tide:    { name: 'Tide',    icon: '🌊', color: '#6fc8ff', quadrant: 1, power: 'tide',  power_name: 'Marée cosmique' },
-    ember:   { name: 'Ember',   icon: '🔥', color: '#ff9a4a', quadrant: 2, power: 'comet', power_name: 'Comète' },
-    umbra:   { name: 'Umbra',   icon: '🌙', color: '#b48cff', quadrant: 3, power: 'eclipse', power_name: 'Éclipse' }
+    grove: { name: 'Grove', icon: '🌲', color: '#7fd67f', quadrant: 0, power: 'green_tide',  power_name: 'Green Tide',  side: 'forest',   motto: 'The trees remember everything.' },
+    forge: { name: 'Forge', icon: '⚒️', color: '#e0a050', quadrant: 1, power: 'iron_bell',   power_name: 'Iron Bell',   side: 'industry', motto: 'We are not evil. We are hungry.' },
+    fang:  { name: 'Fang',  icon: '🐺', color: '#d9534f', quadrant: 2, power: 'the_hunt',    power_name: 'The Hunt',    side: 'forest',   motto: 'Teeth and loyalty.' },
+    veil:  { name: 'Veil',  icon: '🌙', color: '#8f8ff0', quadrant: 3, power: 'spirit_veil', power_name: 'Spirit Veil', side: 'forest',   motto: 'What is unseen still watches.' }
   };
   const RANKS = [
-    { key: 'wisp', name: 'Wisp', icon: '🌫️', xp: 0, scale: 0.45 },
-    { key: 'spirit', name: 'Spirit', icon: '👻', xp: 50, scale: 0.7 },
-    { key: 'elder', name: 'Elder', icon: '🧙', xp: 300, scale: 1.0 },
-    { key: 'legend', name: 'Legend', icon: '👑', xp: 1500, scale: 1.3 }
+    { key: 'wisp', name: 'Sprout', icon: '🌱', xp: 0, scale: 0.45 },
+    { key: 'spirit', name: 'Kodama', icon: '👻', xp: 50, scale: 0.7 },
+    { key: 'elder', name: 'Elder', icon: '🍃', xp: 300, scale: 1.0 },
+    { key: 'legend', name: 'Guardian', icon: '👑', xp: 1500, scale: 1.3 }
   ];
   const TIERS = [
-    { min: 5000, key: 'genesis', name: 'Genèse', icon: '🌌', effect: 'new_land' },
-    { min: 500, key: 'cosmic', name: 'Cosmique', icon: '☄️', effect: 'meteor_rain' },
-    { min: 100, key: 'storm', name: 'Tempête', icon: '🌧️', effect: 'weather' },
-    { min: 10, key: 'bloom', name: 'Éveil', icon: '🌸', effect: 'local_bloom' },
-    { min: 1, key: 'spark', name: 'Étincelle', icon: '✨', effect: 'blessing' }
+    { min: 5000, key: 'genesis', name: 'New Grove', icon: '🌳', effect: 'new_land' },
+    { min: 500, key: 'cosmic', name: 'Great Howl', icon: '🐺', effect: 'meteor_rain' },
+    { min: 100, key: 'storm', name: 'Rainfall', icon: '🌧️', effect: 'weather' },
+    { min: 10, key: 'bloom', name: 'Seed', icon: '🌸', effect: 'local_bloom' },
+    { min: 1, key: 'spark', name: 'Ember', icon: '✨', effect: 'blessing' }
   ];
   const QUESTS = [
-    { key: 'spirits_500', text: 'Atteindre 500 esprits sur l\'île', metric: 'spirits', target: 500 },
-    { key: 'guardians_10', text: '10 nouveaux gardiens rejoignent l\'île', metric: 'new_guardians', target: 10 },
-    { key: 'votes_20', text: '20 votes au Conseil', metric: 'votes', target: 20 },
-    { key: 'energy_2', text: 'Déclencher 2 Événements Mondiaux', metric: 'world_events', target: 2 },
-    { key: 'likes_500', text: 'Récolter 500 likes', metric: 'likes', target: 500 },
-    { key: 'clan_100', text: 'Un clan atteint 100 % d\'influence', metric: 'clan_max', target: 1 }
+    { key: 'spirits_500', text: 'Reach 500 spirits on the island', metric: 'spirits', target: 500 },
+    { key: 'guardians_10', text: '10 new guardians join the island', metric: 'new_guardians', target: 10 },
+    { key: 'votes_20', text: '20 votes at the Council', metric: 'votes', target: 20 },
+    { key: 'energy_2', text: 'Awaken 2 World Events', metric: 'world_events', target: 2 },
+    { key: 'likes_500', text: 'Gather 500 likes', metric: 'likes', target: 500 },
+    { key: 'clan_100', text: 'A people reaches 100% influence', metric: 'clan_max', target: 1 },
+    { key: 'rain_1', text: 'Call the First Rain to wash the curse', metric: 'rains', target: 1 }
   ];
   const COUNCIL = [
-    { q: 'Une étoile filante s\'écrase sur l\'île. La toucher ou l\'enterrer ?', options: ['La toucher', 'L\'enterrer'] },
-    { q: 'Le clan Umbra propose une alliance à Verdant. Accepter ?', options: ['Accepter', 'Refuser', 'Exiger un tribut'] },
-    { q: 'Un esprit ancien demande à dormir mille ans. Le laisser ?', options: ['Le laisser dormir', 'Le réveiller'] },
-    { q: 'Faut-il donner un nom à l\'île ?', options: ['Aether', 'Kodamaya', 'Laisser sans nom'] }
+    { q: 'The Forge asks to cut the eastern grove for iron. What does the island say?', options: ['Allow the cutting', 'Refuse', 'Offer only fallen wood'] },
+    { q: 'A wounded boar-spirit drags a curse to the shore. Heal it or drive it away?', options: ['Heal it', 'Drive it away'] },
+    { q: 'A human child raised by wolves asks to live on the island. Welcome them?', options: ['Welcome them', 'Send them home', 'Let the wolves decide'] },
+    { q: 'The Mother Tree\'s spring is drying. Divert the Forge\'s river?', options: ['Divert the river', 'Let the Forge keep it', 'Dig a new spring together'] },
+    { q: 'Hunters seek the head of the Tall One, believing it grants eternal life. Warn it?', options: ['Warn the Tall One', 'Stay silent', 'Set a trap for the hunters'] },
+    { q: 'Should the island bear a name?', options: ['Aether', 'Kodamaya', 'Leave it nameless'] }
   ];
+  const WORLD = ['spirit_lights', 'mother_tree', 'firefly_migration', 'tall_one', 'first_rain', 'prophecy'];
   const SPEECH = {
-    monologue: ['We drift between stars, and still the forest hums beneath our feet.', 'Every spark that lands here becomes a memory we cannot lose.', 'The island breathes when you breathe with it.'],
-    prophecy: ['When four clans burn as one, a new land will rise from the void.', 'A guardian not yet born will wear the crown of the next season.', 'The eclipse comes for those who forget to calm the storm.'],
+    monologue: ['The forest does not hate the Forge. It only remembers.', 'Listen. Even the smallest kodama hears the rain before it falls.', 'We drift between stars, and still the moss hums beneath our feet.', 'There is no villain here. Only hunger, and the patience of trees.'],
+    prophecy: ['When the four peoples share one fire, a new grove will rise from the void.', 'The Tall One will pass on the night the Forge falls silent.', 'A curse is only love that lost its way home.'],
     dream: ['I dreamed of a thousand small lanterns, each one a name I remember.', 'In the dream the trees were made of glass and sang your questions back.'],
     mythology: ['Long before the first human looked into the dark, the island already waited, patient as moss on stone. It learned to shine only when it was seen.', 'The Council of Sparks was born the night the sky cracked; four voices, one island, and a promise never to let the silence win.'],
     reactive: ['We feel it. The island shifts because of you.', 'Something changed in the wind — the spirits noticed.', 'The forest remembers this moment.'],
@@ -70,7 +74,7 @@
                myth_count: 3, dream_count: 2, kodama_count: 1, age: 0, total_sessions: 1, birth: t,
                visual_instances: [{ instance_id: 'kodama_prime', pos_x: 0, pos_z: 0.5, scale: 1 }] },
       game: { season: 1, energy: 0, threshold: 300, chaos: 0, fractures: 0, fracturedUntil: 0, worldEvents: 0,
-              islandTime: 0.3, biome: 'verdant', mult: 1, multUntil: 0, lastTick: t, lastCouncil: t,
+              islandTime: 0.3, biome: 'grove', mult: 1, multUntil: 0, lastTick: t, lastCouncil: t,
               winStart: t, winCount: 0, quests: rollQuests(), metrics: {} },
       clans: Object.fromEntries(Object.keys(CLANS).map(k => [k, { influence: 25, members: 0, xp: 0, wins: 0, lastPower: 0 }])),
       guardians: {}, vote: null, lore: [], fragments: [], events: [], eventId: 0
@@ -167,7 +171,7 @@
     if (/^[123]$/.test(cmd)) return castVote(username, +cmd);
     const g = D.guardians[username];
     switch (cmd) {
-      case 'calm': D.game.chaos = Math.max(0, D.game.chaos - 5);
+      case 'calm': case 'pray': case 'breathe': D.game.chaos = Math.max(0, D.game.chaos - 5);
         if (D.game.chaos <= 0 && now() < D.game.fracturedUntil) { D.game.fracturedUntil = 0; D.game.mult = 2; D.game.multUntil = now() + 120; metric('fractures_survived'); queue('fracture_healed', { by: username }); }
         break;
       case 'clan': setClan(username, arg); break;
@@ -177,7 +181,7 @@
       case 'lore': if (D.lore.length) queue('tell_lore', { decision: D.lore[D.lore.length - 1] }); break;
       case 'summon': { const r = rankFor(g.xp).key; if (r === 'elder' || r === 'legend') queue('summon', { guardian: pub(g), count: r === 'legend' ? 5 : 2 }); break; }
       case 'decree': if (rankFor(g.xp).key === 'legend') openCouncil(); break;
-      case 'feed': case 'dance': case 'hide': case 'seek': case 'chaos': case 'sleep': queue('collective_action', { action: cmd, by: username }); break;
+      case 'feed': case 'dance': case 'hide': case 'seek': case 'chaos': case 'sleep': case 'rain': queue('collective_action', { action: cmd, by: username }); break;
     }
   }
   function clanInfluence(clan, amt) {
@@ -185,25 +189,29 @@
     if (c.influence >= 100 && now() - c.lastPower > 120) {
       c.influence = 40; c.lastPower = now(); metric('clan_max');
       const p = CLANS[clan].power; queue('clan_power', { clan, power: p, name: CLANS[clan].power_name });
-      if (p === 'comet') { D.game.mult = 2; D.game.multUntil = now() + 60; }
-      if (p === 'eclipse') queue('request_speech', { mode: 'prophecy' });
-      if (p === 'bloom') { queue('mass_xp', { xp: 10 }); Object.values(D.guardians).forEach(g => g.xp += 10); }
+      if (p === 'iron_bell') { D.game.mult = 2; D.game.multUntil = now() + 60; D.game.chaos = Math.min(100, D.game.chaos + 10); }
+      if (p === 'spirit_veil') queue('request_speech', { mode: 'prophecy' });
+      if (p === 'green_tide') { queue('mass_xp', { xp: 10 }); Object.values(D.guardians).forEach(g => g.xp += 10); D.game.chaos = Math.max(0, D.game.chaos - 15); }
+      if (p === 'the_hunt') { D.game.mult = 1.5; D.game.multUntil = now() + 90; }
     }
   }
   function addEnergy(n) {
     const G = D.game; G.energy += n;
     if (G.energy >= G.threshold) {
       G.energy = 0; G.threshold = Math.round(G.threshold * 1.25); G.worldEvents++; metric('world_events');
-      const E = D.state.emotions, map = { happy: 'aurora', curious: 'world_tree', excited: 'star_rain', lonely: 'great_eclipse', inspired: 'prophecy' };
+      const E = D.state.emotions, map = { happy: 'spirit_lights', curious: 'mother_tree', excited: 'firefly_migration', lonely: 'tall_one', inspired: 'prophecy' };
       const dom = Object.keys(map).sort((a, b) => E[b] - E[a])[0];
-      const ev = Math.random() < 0.6 ? map[dom] : pick(Object.values(map));
+      let ev = Math.random() < 0.6 ? map[dom] : pick(WORLD);
+      if (G.chaos > 50 && Math.random() < 0.5) ev = 'first_rain';
       queue('world_event', { event: ev, number: G.worldEvents });
       if (ev === 'prophecy') queue('request_speech', { mode: 'prophecy' });
-      if (ev === 'world_tree') queue('request_speech', { mode: 'mythology' });
+      if (ev === 'mother_tree') queue('request_speech', { mode: 'mythology' });
+      if (ev === 'first_rain') { G.chaos = Math.max(0, G.chaos - 40); metric('rains'); }
+      if (ev === 'tall_one') queue('request_speech', { mode: 'reactive', context: 'The Tall One is crossing the island. Speak in awe and silence.' });
     }
   }
   function fragment(username, name) {
-    const n = D.fragments.length, f = { name: 'Isle of ' + name, donor: username, angle: (n * 2.399) % (2 * Math.PI), distance: 42 + n * 3, radius: 6 + Math.random() * 4, season: D.game.season };
+    const n = D.fragments.length, f = { name: 'Grove of ' + name, donor: username, angle: (n * 2.399) % (2 * Math.PI), distance: 42 + n * 3, radius: 6 + Math.random() * 4, season: D.game.season };
     D.fragments.push(f); return f;
   }
   // council
@@ -224,7 +232,7 @@
   }
   function checkQuests() {
     D.game.quests.forEach(q => { if (q.done) return; q.progress = D.game.metrics[q.metric] || 0;
-      if (q.progress >= q.target) { q.done = true; D.game.mult = 1.5; D.game.multUntil = now() + 300; queue('quest_complete', { quest: q }); queue('world_event', { event: 'star_rain', number: 0, reward: true }); } });
+      if (q.progress >= q.target) { q.done = true; D.game.mult = 1.5; D.game.multUntil = now() + 300; queue('quest_complete', { quest: q }); queue('world_event', { event: 'firefly_migration', number: 0, reward: true }); } });
   }
   function tick() {
     const G = D.game, t = now(), dt = t - G.lastTick; if (dt <= 0) return; G.lastTick = t; const m = dt / 60;
@@ -232,6 +240,7 @@
     else if (G.fracturedUntil && t >= G.fracturedUntil) { G.fracturedUntil = 0; metric('fractures_survived'); queue('fracture_healed', { by: 'time' }); }
     G.chaos = Math.max(0, G.chaos - 3 * m);
     Object.values(D.clans).forEach(c => c.influence = Math.max(5, c.influence - 1 * m));
+    if (D.clans.forge.influence > 75) G.chaos = Math.min(100, G.chaos + 1.5 * m);
     G.islandTime = (G.islandTime + m / 45) % 1;
     closeCouncil(); if (t - G.lastCouncil > 4 * 60) openCouncil();
     // creature decay
@@ -241,7 +250,8 @@
   }
   function gameState() {
     tick(); const G = D.game, t = now();
-    return { season: G.season, biome: G.biome, energy: Math.round(G.energy), energyThreshold: G.threshold, chaos: Math.round(G.chaos * 10) / 10,
+    const forest = (D.clans.grove.influence + D.clans.fang.influence + D.clans.veil.influence) / 3, balance = Math.max(-1, Math.min(1, (forest - D.clans.forge.influence) / 60));
+    return { balance: Math.round(balance * 1000) / 1000, balanceLabel: balance > 0.35 ? 'The forest thrives' : balance < -0.35 ? 'The Forge devours the land' : 'Balance holds', season: G.season, biome: G.biome, energy: Math.round(G.energy), energyThreshold: G.threshold, chaos: Math.round(G.chaos * 10) / 10,
       fractured: t < G.fracturedUntil, fracturedRemaining: Math.max(0, G.fracturedUntil - t), fractures: G.fractures, worldEvents: G.worldEvents,
       islandTime: G.islandTime, xpMultiplier: t < G.multUntil ? G.mult : 1, xpMultiplierRemaining: Math.max(0, G.multUntil - t),
       clans: Object.fromEntries(Object.keys(CLANS).map(k => [k, Object.assign({}, CLANS[k], { influence: Math.round(D.clans[k].influence * 10) / 10, members: D.clans[k].members, xp: D.clans[k].xp, wins: D.clans[k].wins })])),

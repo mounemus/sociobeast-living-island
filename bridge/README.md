@@ -3,18 +3,18 @@
 ```
 cd bridge
 npm install
-cp .env.example .env    # remplir TIKTOK_USERNAME, SOCIOBEAST_URL, BRIDGE_SECRET
-npm start               # live réel
-npm run demo            # public simulé (tests sans TikTok)
+cp .env.example .env    # fill TIKTOK_USERNAME, SOCIOBEAST_URL, BRIDGE_SECRET
+npm start               # real TikTok LIVE
+npm run demo            # simulated audience (no TikTok needed)
 ```
 
-Le secret doit être identique à celui de `/admin/config.php` → TikTok bridge secret.
+`BRIDGE_SECRET` must match the *TikTok bridge secret* in `/admin/config.php`.
 
 ## OBS
-Source navigateur → `https://votre-site/live/?hud=1` en **1080×1920** (portrait TikTok).
-Le HUD est pensé pour le vertical ; `?hud=0` masque le HUD pour un plan "cinéma".
+Browser source → `https://your-site/live/?hud=1` at **1080×1920** (TikTok portrait).
+The HUD is designed for vertical; `?hud=0` hides it for a "cinema" shot.
 
-## Déploiement permanent (VPS)
+## Keep it running (VPS)
 ```
 pm2 start tiktok-bridge.js --name sociobeast-bridge
 pm2 save

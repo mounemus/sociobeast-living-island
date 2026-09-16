@@ -12,53 +12,76 @@ require_once __DIR__ . '/state_engine.php';
 
 class GameEngine {
 
+    // ─── Four peoples of the island (Miyazaki-inspired, original) ───
     const CLANS = [
-        'verdant' => ['name' => 'Verdant', 'icon' => '🌿', 'element' => 'nature', 'color' => '#7fd67f', 'quadrant' => 0,
-                      'power' => 'bloom',  'power_name' => 'Floraison'],
-        'tide'    => ['name' => 'Tide',    'icon' => '🌊', 'element' => 'water',  'color' => '#6fc8ff', 'quadrant' => 1,
-                      'power' => 'tide',   'power_name' => 'Marée cosmique'],
-        'ember'   => ['name' => 'Ember',   'icon' => '🔥', 'element' => 'fire',   'color' => '#ff9a4a', 'quadrant' => 2,
-                      'power' => 'comet',  'power_name' => 'Comète'],
-        'umbra'   => ['name' => 'Umbra',   'icon' => '🌙', 'element' => 'shadow', 'color' => '#b48cff', 'quadrant' => 3,
-                      'power' => 'eclipse','power_name' => 'Éclipse'],
+        'grove' => ['name' => 'Grove', 'icon' => '🌲', 'element' => 'ancient forest', 'color' => '#7fd67f', 'quadrant' => 0,
+                    'power' => 'green_tide',  'power_name' => 'Green Tide',  'side' => 'forest',
+                    'motto' => 'The trees remember everything.'],
+        'forge' => ['name' => 'Forge', 'icon' => '⚒️', 'element' => 'iron & fire', 'color' => '#e0a050', 'quadrant' => 1,
+                    'power' => 'iron_bell',   'power_name' => 'Iron Bell',   'side' => 'industry',
+                    'motto' => 'We are not evil. We are hungry.'],
+        'fang'  => ['name' => 'Fang',  'icon' => '🐺', 'element' => 'wild beasts', 'color' => '#d9534f', 'quadrant' => 2,
+                    'power' => 'the_hunt',    'power_name' => 'The Hunt',    'side' => 'forest',
+                    'motto' => 'Teeth and loyalty.'],
+        'veil'  => ['name' => 'Veil',  'icon' => '🌙', 'element' => 'night spirits', 'color' => '#8f8ff0', 'quadrant' => 3,
+                    'power' => 'spirit_veil', 'power_name' => 'Spirit Veil', 'side' => 'forest',
+                    'motto' => 'What is unseen still watches.'],
     ];
 
     const RANKS = [
-        ['key' => 'wisp',   'name' => 'Wisp',   'icon' => '🌫️', 'xp' => 0,    'scale' => 0.45],
-        ['key' => 'spirit', 'name' => 'Spirit', 'icon' => '👻', 'xp' => 50,   'scale' => 0.7],
-        ['key' => 'elder',  'name' => 'Elder',  'icon' => '🧙', 'xp' => 300,  'scale' => 1.0],
-        ['key' => 'legend', 'name' => 'Legend', 'icon' => '👑', 'xp' => 1500, 'scale' => 1.3],
+        ['key' => 'wisp',   'name' => 'Sprout',   'icon' => '🌱', 'xp' => 0,    'scale' => 0.45],
+        ['key' => 'spirit', 'name' => 'Kodama',   'icon' => '👻', 'xp' => 50,   'scale' => 0.7],
+        ['key' => 'elder',  'name' => 'Elder',    'icon' => '🍃', 'xp' => 300,  'scale' => 1.0],
+        ['key' => 'legend', 'name' => 'Guardian', 'icon' => '👑', 'xp' => 1500, 'scale' => 1.3],
     ];
 
     const XP = ['like' => 1, 'comment' => 3, 'share' => 10, 'follow' => 20, 'join' => 0];
     const ENERGY = ['like' => 1, 'comment' => 3, 'share' => 15, 'follow' => 25, 'join' => 0];
 
     const GIFT_TIERS = [
-        ['min' => 5000, 'key' => 'genesis', 'name' => 'Genèse',    'icon' => '🌌', 'effect' => 'new_land'],
-        ['min' => 500,  'key' => 'cosmic',  'name' => 'Cosmique',  'icon' => '☄️', 'effect' => 'meteor_rain'],
-        ['min' => 100,  'key' => 'storm',   'name' => 'Tempête',   'icon' => '🌧️', 'effect' => 'weather'],
-        ['min' => 10,   'key' => 'bloom',   'name' => 'Éveil',     'icon' => '🌸', 'effect' => 'local_bloom'],
-        ['min' => 1,    'key' => 'spark',   'name' => 'Étincelle', 'icon' => '✨', 'effect' => 'blessing'],
+        ['min' => 5000, 'key' => 'genesis', 'name' => 'New Grove',   'icon' => '🌳', 'effect' => 'new_land'],
+        ['min' => 500,  'key' => 'cosmic',  'name' => 'Great Howl',  'icon' => '🐺', 'effect' => 'meteor_rain'],
+        ['min' => 100,  'key' => 'storm',   'name' => 'Rainfall',    'icon' => '🌧️', 'effect' => 'weather'],
+        ['min' => 10,   'key' => 'bloom',   'name' => 'Seed',        'icon' => '🌸', 'effect' => 'local_bloom'],
+        ['min' => 1,    'key' => 'spark',   'name' => 'Ember',       'icon' => '✨', 'effect' => 'blessing'],
     ];
 
     const QUEST_POOL = [
-        ['key' => 'spirits_1000',  'text' => 'Atteindre 1 000 esprits sur l\'île', 'metric' => 'spirits',   'target' => 1000],
-        ['key' => 'guardians_20',  'text' => '20 nouveaux gardiens rejoignent l\'île', 'metric' => 'new_guardians', 'target' => 20],
-        ['key' => 'fractures_2',   'text' => 'Survivre à 2 Fractures', 'metric' => 'fractures_survived', 'target' => 2],
-        ['key' => 'votes_50',      'text' => '50 votes au Conseil', 'metric' => 'votes', 'target' => 50],
-        ['key' => 'energy_3',      'text' => 'Déclencher 3 Événements Mondiaux', 'metric' => 'world_events', 'target' => 3],
-        ['key' => 'likes_2000',    'text' => 'Récolter 2 000 likes', 'metric' => 'likes', 'target' => 2000],
-        ['key' => 'clan_100',      'text' => 'Un clan atteint 100 % d\'influence', 'metric' => 'clan_max', 'target' => 1],
+        ['key' => 'spirits_1000',  'text' => 'Reach 1,000 spirits on the island',        'metric' => 'spirits',            'target' => 1000],
+        ['key' => 'guardians_20',  'text' => '20 new guardians join the island',          'metric' => 'new_guardians',      'target' => 20],
+        ['key' => 'fractures_2',   'text' => 'Survive 2 curse outbreaks',                 'metric' => 'fractures_survived', 'target' => 2],
+        ['key' => 'votes_50',      'text' => '50 votes at the Council',                   'metric' => 'votes',              'target' => 50],
+        ['key' => 'energy_3',      'text' => 'Awaken 3 World Events',                     'metric' => 'world_events',       'target' => 3],
+        ['key' => 'likes_2000',    'text' => 'Gather 2,000 likes',                        'metric' => 'likes',              'target' => 2000],
+        ['key' => 'clan_100',      'text' => 'A people reaches 100% influence',           'metric' => 'clan_max',           'target' => 1],
+        ['key' => 'rain_1',        'text' => 'Call the First Rain to wash the curse',     'metric' => 'rains',              'target' => 1],
     ];
 
     const COUNCIL_QUESTIONS = [
-        ['q' => 'Une étoile filante s\'écrase sur l\'île. La toucher ou l\'enterrer ?', 'options' => ['La toucher', 'L\'enterrer']],
-        ['q' => 'Le clan Umbra propose une alliance à Verdant. Accepter ?', 'options' => ['Accepter', 'Refuser', 'Exiger un tribut']],
-        ['q' => 'Un esprit ancien demande à dormir mille ans. Le laisser ?', 'options' => ['Le laisser dormir', 'Le réveiller']],
-        ['q' => 'Une brume inconnue monte du vide. La boire ou la fuir ?', 'options' => ['La boire', 'La fuir']],
-        ['q' => 'Les lucioles proposent de guider l\'île vers une autre étoile. Partir ?', 'options' => ['Partir', 'Rester']],
-        ['q' => 'Un humain a laissé un miroir sur l\'île. Le regarder ?', 'options' => ['Regarder', 'Le briser', 'L\'enterrer']],
-        ['q' => 'Faut-il donner un nom à l\'île ?', 'options' => ['Aether', 'Kodamaya', 'Laisser sans nom']],
+        ['q' => 'The Forge asks to cut the eastern grove for iron. What does the island say?',
+         'options' => ['Allow the cutting', 'Refuse', 'Offer only fallen wood']],
+        ['q' => 'A wounded boar-spirit drags a curse to the shore. Heal it or drive it away?',
+         'options' => ['Heal it', 'Drive it away']],
+        ['q' => 'A human child raised by wolves asks to live on the island. Welcome them?',
+         'options' => ['Welcome them', 'Send them home', 'Let the wolves decide']],
+        ['q' => 'The Mother Tree\'s spring is drying. Divert the Forge\'s river?',
+         'options' => ['Divert the river', 'Let the Forge keep it', 'Dig a new spring together']],
+        ['q' => 'Hunters seek the head of the Tall One, believing it grants eternal life. Warn it?',
+         'options' => ['Warn the Tall One', 'Stay silent', 'Set a trap for the hunters']],
+        ['q' => 'The night spirits ask for one hour of total silence each live. Grant it?',
+         'options' => ['Grant the silence', 'Refuse', 'Only at dawn']],
+        ['q' => 'Should the island bear a name?',
+         'options' => ['Aether', 'Kodamaya', 'Leave it nameless']],
+    ];
+
+    // World events awakened by the island's energy
+    const WORLD_EVENTS = [
+        'spirit_lights'     => 'Spirit Lights',
+        'mother_tree'       => 'The Mother Tree awakens',
+        'firefly_migration' => 'Firefly Migration',
+        'tall_one'          => 'The Tall One passes',
+        'first_rain'        => 'The First Rain',
+        'prophecy'          => 'Prophecy',
     ];
 
     // ═══════════════════════════════════════════════════════════════
@@ -73,7 +96,7 @@ class GameEngine {
             CREATE TABLE IF NOT EXISTS guardians (
                 username TEXT PRIMARY KEY,
                 display_name TEXT,
-                clan TEXT DEFAULT 'verdant',
+                clan TEXT DEFAULT 'grove',
                 xp INTEGER DEFAULT 0,
                 rank TEXT DEFAULT 'wisp',
                 instance_id TEXT,
@@ -103,7 +126,7 @@ class GameEngine {
                 fractured_until INTEGER DEFAULT 0,
                 world_events INTEGER DEFAULT 0,
                 island_time REAL DEFAULT 0.25,
-                biome TEXT DEFAULT 'verdant',
+                biome TEXT DEFAULT 'grove',
                 xp_multiplier REAL DEFAULT 1,
                 xp_multiplier_until INTEGER DEFAULT 0,
                 last_tick INTEGER DEFAULT 0,
@@ -231,7 +254,7 @@ class GameEngine {
     private static function weakestClan(): string {
         $db = Database::get();
         $row = $db->query("SELECT key FROM clans ORDER BY members ASC, influence ASC LIMIT 1")->fetch();
-        return $row['key'] ?? 'verdant';
+        return $row['key'] ?? 'grove';
     }
 
     /** Ensure a guardian exists; returns [guardian, isNew] */
@@ -470,7 +493,7 @@ class GameEngine {
         }
 
         switch ($cmd) {
-            case 'calm':
+            case 'calm': case 'pray': case 'breathe':
                 $game['chaos'] = max(0, (float)$game['chaos'] - 5);
                 if ($game['chaos'] <= 0 && time() < (int)$game['fractured_until']) {
                     $game['fractured_until'] = 0;
@@ -526,7 +549,7 @@ class GameEngine {
                 }
                 break;
 
-            case 'feed': case 'dance': case 'hide': case 'seek': case 'chaos': case 'sleep':
+            case 'feed': case 'dance': case 'hide': case 'seek': case 'chaos': case 'sleep': case 'rain':
                 self::queueEvent('collective_action', ['action' => $cmd, 'by' => $username]);
                 $out[] = ['cmd' => $cmd];
                 break;
@@ -548,9 +571,10 @@ class GameEngine {
             self::metric($game, 'clan_max');
             $power = self::CLANS[$clan]['power'];
             self::queueEvent('clan_power', ['clan' => $clan, 'power' => $power, 'name' => self::CLANS[$clan]['power_name']]);
-            if ($power === 'comet') { $game['xp_multiplier'] = 2; $game['xp_multiplier_until'] = time() + 60; }
-            if ($power === 'eclipse') { self::queueEvent('request_speech', ['mode' => 'prophecy']); }
-            if ($power === 'bloom') { self::queueEvent('mass_xp', ['xp' => 10]); self::massXp(10); }
+            if ($power === 'iron_bell')   { $game['xp_multiplier'] = 2; $game['xp_multiplier_until'] = time() + 60; $game['chaos'] = min(100, (float)$game['chaos'] + 10); } // industry feeds the curse
+            if ($power === 'spirit_veil') { self::queueEvent('request_speech', ['mode' => 'prophecy']); }
+            if ($power === 'green_tide')  { self::queueEvent('mass_xp', ['xp' => 10]); self::massXp(10); $game['chaos'] = max(0, (float)$game['chaos'] - 15); }
+            if ($power === 'the_hunt')    { $game['xp_multiplier'] = 1.5; $game['xp_multiplier_until'] = time() + 90; }
         }
     }
 
@@ -571,7 +595,9 @@ class GameEngine {
             $event = self::pickWorldEvent();
             self::queueEvent('world_event', ['event' => $event, 'number' => $game['world_events']]);
             if ($event === 'prophecy') self::queueEvent('request_speech', ['mode' => 'prophecy']);
-            if ($event === 'world_tree') self::queueEvent('request_speech', ['mode' => 'mythology']);
+            if ($event === 'mother_tree') self::queueEvent('request_speech', ['mode' => 'mythology']);
+            if ($event === 'first_rain') { $game['chaos'] = max(0, (float)$game['chaos'] - 40); self::metric($game, 'rains'); }
+            if ($event === 'tall_one') self::queueEvent('request_speech', ['mode' => 'reactive', 'context' => 'The Tall One, the great night-walking spirit, is crossing the island. Speak in awe and silence.']);
             MemoryEngine::addEvent('world_event', "World event #{$game['world_events']}: $event", '');
         }
     }
@@ -580,12 +606,14 @@ class GameEngine {
         $state = StateEngine::getPublicState();
         $emo = $state['emotions'] ?? [];
         $dominant = 'happy'; $max = -1;
-        foreach (['happy' => 'aurora', 'curious' => 'world_tree', 'excited' => 'star_rain', 'lonely' => 'great_eclipse', 'inspired' => 'prophecy'] as $e => $ev) {
+        $game = self::getGame();
+        if ((float)$game['chaos'] > 50 && mt_rand(0, 100) < 50) return 'first_rain'; // the island heals itself when cursed
+        foreach (['happy' => 'spirit_lights', 'curious' => 'mother_tree', 'excited' => 'firefly_migration', 'lonely' => 'tall_one', 'inspired' => 'prophecy'] as $e => $ev) {
             if (($emo[$e] ?? 0) > $max) { $max = $emo[$e] ?? 0; $dominant = $ev; }
         }
         // Weighted randomness: 60% dominant, 40% random
         if (mt_rand(0, 100) < 60) return $dominant;
-        $all = ['aurora', 'world_tree', 'star_rain', 'great_eclipse', 'prophecy'];
+        $all = array_keys(self::WORLD_EVENTS);
         return $all[array_rand($all)];
     }
 
@@ -679,7 +707,7 @@ class GameEngine {
                 $q['done'] = true; $changed = true;
                 $game['xp_multiplier'] = 1.5; $game['xp_multiplier_until'] = time() + 300;
                 self::queueEvent('quest_complete', ['quest' => $q]);
-                self::queueEvent('world_event', ['event' => 'star_rain', 'number' => 0, 'reward' => true]);
+                self::queueEvent('world_event', ['event' => 'firefly_migration', 'number' => 0, 'reward' => true]);
             }
         }
         $game['quests'] = json_encode($quests);
@@ -698,7 +726,7 @@ class GameEngine {
         $db = Database::get();
         $n = (int)$db->query("SELECT COUNT(*) c FROM land_fragments")->fetch()['c'];
         $angle = ($n * 2.399) % (2 * M_PI); // golden angle spread
-        $frag = ['name' => "Isle of " . ($display ?: $username), 'donor' => $username, 'angle' => $angle,
+        $frag = ['name' => "Grove of " . ($display ?: $username), 'donor' => $username, 'angle' => $angle,
                  'distance' => 42 + $n * 3, 'radius' => 6 + mt_rand(0, 40) / 10, 'season' => $game['season']];
         $db->prepare("INSERT INTO land_fragments (name, donor, angle, distance, radius, season) VALUES (?,?,?,?,?,?)")
            ->execute([$frag['name'], $username, $angle, $frag['distance'], $frag['radius'], $game['season']]);
@@ -735,8 +763,10 @@ class GameEngine {
             self::queueEvent('fracture_healed', ['by' => 'time']);
         }
 
-        // Chaos decays 3/min naturally
+        // The curse fades 3/min naturally; industry feeds it
         $game['chaos'] = max(0, (float)$game['chaos'] - 3 * $dtMin);
+        $forge = (float)(Database::get()->query("SELECT influence FROM clans WHERE key = 'forge'")->fetch()['influence'] ?? 0);
+        if ($forge > 75) $game['chaos'] = min(100, (float)$game['chaos'] + 1.5 * $dtMin);
 
         // Clan influence decay 1/min
         Database::get()->exec("UPDATE clans SET influence = MAX(5, influence - " . (1 * $dtMin) . ")");
@@ -767,7 +797,7 @@ class GameEngine {
         $db = Database::get();
         $game = self::getGame();
         $clans = $db->query("SELECT key, total_xp FROM clans ORDER BY total_xp DESC")->fetchAll();
-        $winner = $clans[0]['key'] ?? 'verdant';
+        $winner = $clans[0]['key'] ?? 'grove';
         $db->prepare("INSERT OR REPLACE INTO seasons (season, winner_clan, started_at, ended_at, summary) VALUES (?,?,?,?,?)")
            ->execute([$game['season'], $winner, $game['season_started'], time(), json_encode(['clans' => $clans, 'metrics' => json_decode($game['metrics'], true)])]);
         $db->prepare("UPDATE clans SET seasons_won = seasons_won + 1 WHERE key = ?")->execute([$winner]);
@@ -795,9 +825,14 @@ class GameEngine {
         foreach ($clans as $k => $c) {
             $pub[$k] = ['name' => $c['name'], 'icon' => $c['icon'], 'color' => $c['color'], 'quadrant' => $c['quadrant'],
                         'influence' => round((float)$c['influence'], 1), 'members' => (int)$c['members'],
-                        'xp' => (int)$c['total_xp'], 'wins' => (int)$c['seasons_won']];
+                        'xp' => (int)$c['total_xp'], 'wins' => (int)$c['seasons_won'], 'side' => $c['side'], 'motto' => $c['motto']];
         }
+        $forest = (($clans['grove']['influence'] ?? 25) + ($clans['fang']['influence'] ?? 25) + ($clans['veil']['influence'] ?? 25)) / 3;
+        $industry = (float)($clans['forge']['influence'] ?? 25);
+        $balance = max(-1, min(1, ($forest - $industry) / 60)); // +1 lush forest … -1 iron ash
         return [
+            'balance' => round($balance, 3),
+            'balanceLabel' => $balance > 0.35 ? 'The forest thrives' : ($balance < -0.35 ? 'The Forge devours the land' : 'Balance holds'),
             'season' => (int)$g['season'],
             'biome' => $g['biome'],
             'energy' => round((float)$g['island_energy']),

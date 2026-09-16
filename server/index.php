@@ -24,7 +24,7 @@ $initialStateJson = json_encode($state);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title><?= clean($creatureName) ?> GENESIS — Living Digital Spirit</title>
+    <title><?= clean($creatureName) ?> — The Living Island</title>
     <meta name="description" content="A living AI creature that develops its own mythology, dreams, and memories. Watch it evolve.">
     <link rel="stylesheet" href="assets/style.css">
     <link rel="stylesheet" href="assets/game.css?v=12">
@@ -86,7 +86,7 @@ $initialStateJson = json_encode($state);
         <span>🔍 <span class="key">Scroll</span> zoom</span>
         <span>💭 <span class="key">T</span> thought</span>
         <span>👻 <span class="key">S</span> shy | <span class="key">C</span> curious</span>
-        <span>🎮 <span class="key">H</span> HUD | <span class="key">G</span> test gift</span>
+        <span>🎮 <span class="key">H</span> HUD | <span class="key">G</span> test gift | <span class="key">R</span> rain</span>
     </div>
 
     <div id="connection-status">

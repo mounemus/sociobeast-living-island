@@ -1,11 +1,12 @@
-# 🌌 SocioBeast — The Living Island
+# 🌲 SocioBeast — The Living Island · v13 "Kodama Grove"
 
-> A cosmic floating island where **every TikTok Live viewer becomes a guardian spirit**.
-> 1000+ AI creatures, 4 rival clans, a shared island-energy bar, chaos & fractures,
-> council votes that rewrite the lore, quests and persistent seasons.
+> A floating island of ancient forest where **every TikTok Live viewer becomes a kodama**.
+> Four peoples — Grove, Forge, Fang, Veil — share the island; the audience tips the **balance between forest and iron**,
+> heals **the Curse** born of hatred, votes at the **Council** that writes the lore, and awakens World Events such as the passing of **the Tall One**.
+> Inspired by the moral universe of Hayao Miyazaki (no villains, nature as a character) with original names and assets.
 > Three.js + PHP/SQLite + a Node TikTok bridge. By [UbMaker](https://virlabdesign.com).
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/YOUR_GITHUB_USER/sociobeast-living-island)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mounemus/sociobeast-living-island)
 
 📖 Full concept: [GAME-DESIGN.md](GAME-DESIGN.md)
 
@@ -25,7 +26,7 @@ Vercel's serverless filesystem is read-only, so the persistent PHP/SQLite backen
 ---
 
 ## 🎮 Play it now
-Live single-file demo (no server): **https://claude.ai/artifact/HRPHSYaWeRc6SD1q1mnn3y** — `bash scripts/build-standalone.sh` rebuilds it (`web/dist/sociobeast-standalone.html`, ~1 MB, model inlined).
+Live demo: **https://sociobeast-living-island.vercel.app/?demo=1** (Vercel) · single-file mirror: https://claude.ai/artifact/HRPHSYaWeRc6SD1q1mnn3y — `bash scripts/build-standalone.sh` rebuilds it (`web/dist/sociobeast-standalone.html`, ~1 MB, model inlined).
 
 ## 🚀 Deploy the demo on Vercel
 
@@ -37,7 +38,7 @@ vercel --prod     # production
 Or import the GitHub repo in the Vercel dashboard — `vercel.json` already defines the build
 (`scripts/build-web.sh` → `web/dist`). Open `https://<project>.vercel.app/?demo=1`.
 
-Keys: **H** hide HUD · **G** send a test Galaxy gift · **T** thought · **S/C** shy/curious · drag / scroll to navigate.
+Keys: **H** hide HUD · **G** test Great Howl gift · **R** rain · **T** thought · **S/C** shy/curious · drag / scroll to navigate.
 Console: `SocioMock.reset()` wipes the local save, `SocioMock.endSeason()` closes a season.
 
 ---
@@ -53,7 +54,7 @@ Console: `SocioMock.reset()` wipes the local save, `SocioMock.endSeason()` close
    ```
 4. OBS → Browser source `https://your-host/live/?hud=1` at **1080×1920**.
 
-Chat commands: `!clan <verdant|tide|ember|umbra>` `!me` `!top` `!quest` `!lore` `!calm` `!1 !2 !3` `!summon` `!decree` `!dance !feed !hide !seek`
+Chat commands: `!clan <grove|forge|fang|veil>` `!me` `!top` `!quest` `!lore` `!calm !pray !breathe` `!1 !2 !3` `!summon` `!decree` `!dance !feed !hide !seek !rain`
 
 ---
 
