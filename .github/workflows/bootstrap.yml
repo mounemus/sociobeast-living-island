@@ -1,0 +1,22 @@
+name: bootstrap-import-v13
+on:
+  push:
+    paths: ['.github/workflows/bootstrap.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import v13 files and push
+        run: |
+          curl -sL -o r.zip "https://upload.higgsfield.ai/user_3G0gtr5tdjlbOmgsZ7fQhn2YodW/8d27ee42-b3ff-4085-b701-371d900d9ac3.zip"
+          unzip -oq r.zip && cp -r repo/. . && rm -rf repo r.zip .github/workflows/bootstrap.yml
+          git checkout -- .github/workflows/ci.yml 2>/dev/null || true
+          git config user.name "Abdel-Mounem Taouai"
+          git config user.email "taouai@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(v13): Kodama Grove - Miyazaki-inspired universe, full English, forest/forge balance, the Curse, the Tall One, rain"
+          git push
