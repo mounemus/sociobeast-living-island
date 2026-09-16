@@ -25,6 +25,10 @@ web/api/tiktok.php        relay: POST from the bridge (secret, events, heartbeat
 web/api/think.php         LLM voice (Anthropic/OpenAI), key in web/api/config.local.php (git-ignored)
 api/think.js              same voice as a Vercel function for the demo (env ANTHROPIC_API_KEY) — keep its prompt in sync
 bridge/tiktok-bridge.js   Node: TikTok LIVE → web/api/tiktok.php (tiktok-live-connector), heartbeat every 30 s
+web/assets/art/           the 11 form concept images (Higgsfield gpt_image_2_5, 2026-09-16) — the art bible and the input of the 3D step
+web/assets/models/        optional form-NN.glb per form (NN = stage+1). creature.js loads them (GLTFLoader) and hides the
+                          procedural body; the rig/FX/bubbles keep working. Missing file = procedural fallback.
+scripts/meshy-forms.mjs   MESHY_API_KEY=… node scripts/meshy-forms.mjs → image-to-3D (Meshy 5, textured) for each art image
 scripts/build-web.sh      web/dist = web minus api (Vercel output, see vercel.json)
 .github/workflows/ci.yml  php -l, node --check, relay smoke test, build
 ```
@@ -51,6 +55,11 @@ for f in web/assets/*.js api/think.js; do node --check "$f"; done; for f in web/
 ```
 In the page console: `Game.reset()`, `Game.evolve()`, `Game.handle({type:'gift',username:'x',giftName:'Galaxy',coins:1000})`,
 `Director.openPoll('Dance or sing?', ['dance','sing'], ['dance','sing'])`, `Director.beat()`, `Cast.say('moss', 'Hello')`.
+
+## Graphics pipeline (owner's target: the Pixar-style poster)
+Higgsfield costs measured 2026-09-16: 1 credit per image, 30 credits per textured image_to_3d (20 untextured); balance was 28 →
+no model yet. Path: art images (done) → `scripts/meshy-forms.mjs` with a Meshy key (or Higgsfield image_to_3d when credits allow)
+→ commit `web/assets/models/form-NN.glb`. Textured GLBs cannot blink or talk (static face); the rig still hops, squashes, tilts.
 
 ## Backlog
 1. Sound: a few procedural chirps (WebAudio) for hop / nom / evolve; TTS voice choice.

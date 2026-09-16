@@ -212,9 +212,38 @@
   function setStage(n, animate) {
     A.stage = n; const L = STAGE_LOOK[Math.min(7, n)];
     A.growthT = L.s; if (!animate) A.growth = L.s;
-    A.glow = L.glow; parts.egg.visible = n === 0;
+    A.glow = L.glow; parts.egg.visible = n === 0; parts.beast.visible = n > 0;
+    loadModel(n); showModel(n); if (n < 7) loadModel(n + 1); // prefetch the next form
     if (animate) { A.stageGrow = 0; camPunch = 1; }
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // OPTIONAL MODELS — assets/models/form-NN.glb (NN = stage+1, 01..08). Generated with Higgsfield image_to_3d from
+  // assets/art/form-NN-*.png. When a form has a model it replaces the procedural body; the rig (hop, squash, tilt,
+  // spin, breathing), the FX and the bubbles keep working. Missing files simply keep the procedural creature.
+  // ─────────────────────────────────────────────────────────────
+  const models = {}; // stage → { obj, height } | 'missing' | 'loading'
+  function modelUrl(n) { return 'assets/models/form-' + String(n + 1).padStart(2, '0') + '.glb'; }
+  function loadModel(n) {
+    if (models[n] !== undefined || !T.GLTFLoader) return;
+    models[n] = 'loading';
+    new T.GLTFLoader().load(modelUrl(n), function(gltf) {
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh) { o.castShadow = false; if (o.material) { o.material.roughness = Math.min(0.9, (o.material.roughness || 0.7) + 0.1); if (o.material.emissive) o.material.emissiveIntensity = 0.15; } } });
+      const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), h = Math.max(0.001, size.y);
+      const sc = 2.55 / h; obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
+      obj.position.set(-c.x, -box.min.y, -c.z);
+      const g = new T.Group(); g.add(obj); g.visible = false; parts.tilt.add(g);
+      models[n] = { obj: g, height: 2.55 };
+      if (A.stage === n) showModel(n);
+    }, undefined, function() { models[n] = 'missing'; });
+  }
+  function showModel(n) {
+    Object.keys(models).forEach(function(k) { if (models[k] && models[k].obj) models[k].obj.visible = +k === n; });
+    const m = models[n] && models[n].obj ? models[n] : null;
+    parts.beast.visible = !m && n > 0; parts.egg.visible = !m && n === 0;
+    A.usingModel = !!m;
+  }
+
   function partScale(obj, on, k, mult) { const t = on ? (mult || 1) : 0.001; obj.scale.x += (t * Math.sign(obj.scale.x || 1) - obj.scale.x) * k; obj.scale.y += (t - obj.scale.y) * k; obj.scale.z += (t - obj.scale.z) * k; }
 
   const MOODS = {
@@ -367,8 +396,8 @@
     parts.aura.material.opacity = lerp(parts.aura.material.opacity, s >= 6 ? 0.07 + (A.mood === 'ecstatic' ? 0.05 : 0) : 0, gk); parts.aura.scale.setScalar(1 + Math.sin(t * 1.6) * 0.04); parts.aura.material.color.setHSL((t * 0.05) % 1, 0.8, 0.75);
     parts.runes.children.forEach(function(r, i) { r.material.emissiveIntensity = lerp(r.material.emissiveIntensity, i < s ? 1.1 : 0, gk); r.position.y = r.userData.base + (i < s ? Math.sin(t * 1.5 + i) * 0.06 + 0.1 : 0); r.rotation.y = t * 0.6 + i; });
     // egg: wobbles when warmed, cracks glow as hatching nears
-    parts.egg.scale.setScalar(s === 0 ? 1 : Math.max(0.001, parts.egg.scale.x - dt * 1.5));
-    partScale(parts.beast, s > 0, s > 0 ? gk * 0.6 : 1);
+    if (!A.usingModel) parts.egg.scale.setScalar(s === 0 ? 1 : Math.max(0.001, parts.egg.scale.x - dt * 1.5));
+    if (!A.usingModel) partScale(parts.beast, s > 0, s > 0 ? gk * 0.6 : 1);
     parts.egg.rotation.z = s === 0 && (A.mood === 'ecstatic' || A.wobble) ? Math.sin(t * 20) * 0.08 : Math.sin(t * 1.5) * 0.02;
     parts.eggCracks.forEach(function(c, i) { c.visible = s === 0 && A.hatch > (i + 1) / 6; });
     parts.eggMark.material.emissiveIntensity = 0.6 + Math.sin(t * 2) * 0.3 + A.hatch * 0.8;
@@ -404,7 +433,7 @@
   }
 
   function headScreenPos() {
-    const v = new T.Vector3(root.position.x, (2.6 + (A.stage >= 6 ? 0.5 : 0)) * A.growth + A.y, root.position.z).project(camera);
+    const v = new T.Vector3(root.position.x, (A.usingModel ? 2.7 : 2.6 + (A.stage >= 6 ? 0.5 : 0)) * A.growth + A.y, root.position.z).project(camera);
     return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, visible: v.z < 1 };
   }
 
@@ -412,5 +441,5 @@
   function ready() { return !!scene; }
   function project(x, y, z) { const v = new T.Vector3(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, visible: v.z < 1 }; }
   function cameraPos() { return camera.position; }
-  window.Creature = { init, ready, attach, project, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
+  window.Creature = { init, ready, attach, project, models: models, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
 })();
