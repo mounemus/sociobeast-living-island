@@ -45,8 +45,19 @@ body { background: #0a1424; color: var(--ink); font-family: var(--font); overflo
 #h-mood { font-size: 10px; color: var(--ink-3); letter-spacing: .12em; text-transform: uppercase; }
 
 /* ── speech bubble, anchored to the creature's head ── */
-#bubble { position: absolute; left: 0; top: 0; max-width: min(78vw, 360px); background: rgba(255,255,255,.94); color: #1c2a24; padding: 10px 14px; border-radius: 16px 16px 16px 4px; font-family: var(--serif); font-size: 18px; line-height: 1.25; transition: transform .25s ease; will-change: transform; }
-#bubble.pop { animation: bubblein .3s cubic-bezier(.2,1.3,.4,1); }
+.bubble { position: absolute; left: 0; top: 0; max-width: min(78vw, 360px); background: rgba(255,255,255,.94); color: #1c2a24; padding: 10px 14px; border-radius: 16px 16px 16px 4px; font-family: var(--serif); font-size: 18px; line-height: 1.25; transition: transform .25s ease; will-change: transform; }
+.bubble.pop { animation: bubblein .3s cubic-bezier(.2,1.3,.4,1); }
+.bubble::before { content: ''; display: block; font-family: var(--font); font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 2px; opacity: .55; }
+.bubble.pip { background: rgba(255,214,243,.95); color: #4a1040; border-radius: 16px 16px 4px 16px; font-size: 16px; } .bubble.pip::before { content: 'Pip'; }
+.bubble.moss { background: rgba(214,240,228,.95); color: #163a2c; border-radius: 16px 16px 16px 4px; font-size: 16px; } .bubble.moss::before { content: 'Moss'; }
+#poll { position: absolute; top: 150px; left: 50%; transform: translateX(-50%); width: min(92vw, 420px); background: var(--glass-2); border-color: rgba(255,122,217,.45); animation: bannerin .35s ease; }
+#poll .v-title { justify-content: space-between; } #poll .label { color: #ffb3ea; } #poll .v-title .num { font-size: 12px; color: var(--ink-2); }
+#poll .v-q { font-family: var(--serif); font-size: 20px; line-height: 1.25; margin: 6px 0 10px; }
+#poll .v-opt { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; margin: 7px 0; font-size: 14px; text-transform: capitalize; }
+#poll .key { display: inline-flex; align-items: center; justify-content: center; height: 24px; border-radius: 7px; background: rgba(255,122,217,.2); color: #ffb3ea; font-weight: 700; font-size: 12px; }
+#poll .vbar { grid-column: 2 / 4; height: 4px; background: var(--track); border-radius: 2px; overflow: hidden; margin-top: -3px; } #poll .vbar > div { height: 100%; background: linear-gradient(90deg, #ff7ad9, #6fe9ff); transition: width .4s; }
+#poll .v-opt .num { color: var(--ink-2); font-size: 12px; }
+#hud.polling #banner { top: 330px; }
 @keyframes bubblein { from { opacity: 0; scale: .8; } }
 
 /* ── keepers (right) · feed (bottom left) · banner · CTA ── */
@@ -83,7 +94,8 @@ body { background: #0a1424; color: var(--ink); font-family: var(--font); overflo
   #keepers .label { display: inline; margin: 0 8px 0 0; }
   .lb { display: inline-flex; gap: 5px; margin: 0 10px 0 0; font-size: 11px; } .lb .pos { display: none; }
   #feed { bottom: 52px; width: 72vw; left: 8px; } .fitem:nth-child(n+4) { display: none; }
-  #bubble { font-size: 16px; max-width: 80vw; }
+  .bubble { font-size: 15px; max-width: 80vw; } .bubble.pip, .bubble.moss { font-size: 14px; }
+  #poll .v-q { font-size: 17px; }
   .vital .row span:last-child { display: none; }
   #cta { font-size: 12px; }
   #help { display: none; }

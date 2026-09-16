@@ -9,7 +9,7 @@
     <meta property="og:description" content="Feed it with ❤️, talk to it in the chat, evolve it with gifts. It gets hungry, sleeps, remembers its keepers and acts on its own.">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
-    <link rel="stylesheet" href="assets/beast.css?v=20">
+    <link rel="stylesheet" href="assets/beast.css?v=21">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
 </head>
 <body>
@@ -26,12 +26,15 @@
                 <div class="vital" id="v-energy"><div class="row"><span>⚡ Energy</span><span>sleep · gifts</span></div><div class="bar"><div id="h-energy"></div></div></div>
             </div>
         </div>
-        <div id="bubble" class="hidden"></div>
+        <div id="bubble" class="bubble hidden"></div>
+        <div id="bubble-pip" class="bubble pip hidden"></div>
+        <div id="bubble-moss" class="bubble moss hidden"></div>
+        <div id="poll" class="panel hidden"></div>
         <div id="keepers" class="panel"></div>
         <div id="feed"></div>
         <div id="banner" class="hidden"></div>
         <div id="cta"></div>
-        <div id="help"><span>? keys</span><div class="keys"><kbd>H</kbd>hide HUD<br><kbd>L</kbd>25 likes<br><kbd>G</kbd>Galaxy gift<br><kbd>E</kbd>force evolution<br><kbd>V</kbd>voice on/off<br><kbd>R</kbd>reset to egg</div></div>
+        <div id="help"><span>? keys</span><div class="keys"><kbd>H</kbd>hide HUD<br><kbd>L</kbd>25 likes<br><kbd>G</kbd>Galaxy gift<br><kbd>E</kbd>force evolution<br><kbd>P</kbd>next show beat<br><kbd>V</kbd>voice on/off<br><kbd>R</kbd>reset to egg</div></div>
     </div>
 
     <script>
@@ -44,7 +47,7 @@
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
-          .then(function() { return loadSeq(['assets/creature.js?v=20', 'assets/game.js?v=20', 'assets/audience.js?v=20']); })
+          .then(function() { return loadSeq(['assets/creature.js?v=21', 'assets/cast.js?v=21', 'assets/game.js?v=21', 'assets/director.js?v=21', 'assets/audience.js?v=21']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>

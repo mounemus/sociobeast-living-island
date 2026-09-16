@@ -17,13 +17,16 @@
   // ─────────────────────────────────────────────────────────────
   // RULES
   // ─────────────────────────────────────────────────────────────
+  // 8 forms, thresholds from the launch poster (likes ≈ XP; gifts count 3 XP per coin)
   const STAGES = [
-    { key: 'egg', name: 'Egg', xp: 0, intro: 'Something is moving inside…' },
-    { key: 'hatchling', name: 'Hatchling', xp: 150, intro: 'It hatched! Tiny, hungry, and already in love with you.' },
-    { key: 'sprout', name: 'Sprout', xp: 400, intro: 'Horns! Arms! It can hug now. Careful, it will.' },
-    { key: 'beast', name: 'Young Beast', xp: 2000, intro: 'It stands taller than the mushrooms. The nest glows.' },
-    { key: 'guardian', name: 'Guardian', xp: 8000, intro: 'Wings of light. It watches over everyone who fed it.' },
-    { key: 'cosmic', name: 'Cosmic Beast', xp: 25000, intro: 'It carries a crown of stars. Made entirely of your hearts.' }
+    { key: 'egg', name: 'Egg', xp: 0, intro: 'Everything starts here. Warm it with ❤️' },
+    { key: 'baby', name: 'Baby', xp: 100, intro: 'It hatched thanks to your first hearts! Tiny, hungry, already in love with you.' },
+    { key: 'child', name: 'Child', xp: 1000, intro: 'A crystal crest, tiny fangs. It is curious about everything now.' },
+    { key: 'teen', name: 'Teen', xp: 5000, intro: 'A glowing collar and a personality. It talks back.' },
+    { key: 'adult', name: 'Adult', xp: 10000, intro: 'Wings! Strong, bright, full of energy.' },
+    { key: 'special', name: 'Special Form', xp: 50000, intro: 'Crystals bloom on its back. A unique evolution unlocked by your love.' },
+    { key: 'legendary', name: 'Legendary', xp: 100000, intro: 'Feathered wings and a crown. An extraordinary creature born from you.' },
+    { key: 'infinite', name: 'Infinite ?', xp: 250000, intro: 'And if we went even further…' }
   ];
   const RATE = { food: 0.22, joy: 0.14, energy: 0.11, sleepRegen: 0.9 };   // per second, awake
   const GAIN = { likeFood: 0.5, likeXp: 1, commentJoy: 4, commentXp: 3, followXp: 25, shareXp: 30, giftFood: 10, giftJoy: 20, giftXpPerCoin: 3 };
@@ -95,7 +98,7 @@
     const b = $('bubble'); if (!b || !text) return;
     b.textContent = text; b.classList.remove('hidden'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
     clearTimeout(b._t); b._t = setTimeout(function() { b.classList.add('hidden'); }, ms || 4500);
-    Creature.talk(Math.min(4, text.length / 14)); tts(text);
+    Creature.talk(Math.min(4, text.length / 14)); tts(text, 'beast');
   }
   function speak(kind, ctx, ms) { say(line(kind, ctx), ms); }
   // In live mode the AI relay gives the creature real words; the scripted lines are the fallback and the demo voice.
@@ -109,7 +112,8 @@
       .catch(function() { aiFails++; speak(fallbackKind, ctx); }).finally(function() { clearTimeout(to); aiBusy = false; });
   }
   let voiceOn = C.voice === true;
-  function tts(text) { if (!voiceOn || !window.speechSynthesis) return; try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/[*♪]/g, '')); u.pitch = 1.5; u.rate = 1.05; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
+  const VOICES = { beast: { pitch: 1.5, rate: 1.05 }, pip: { pitch: 1.9, rate: 1.2 }, moss: { pitch: 0.6, rate: 0.85 } };
+  function tts(text, who) { if (!voiceOn || !window.speechSynthesis) return; try { const v = VOICES[who] || VOICES.beast; const u = new SpeechSynthesisUtterance(text.replace(/[*♪]/g, '')); u.pitch = v.pitch; u.rate = v.rate; u.lang = 'en-US'; speechSynthesis.speak(u); } catch (e) {} }
 
   // ─────────────────────────────────────────────────────────────
   // KEEPERS (the audience's memory)
@@ -163,12 +167,13 @@
         gainXp(coins * GAIN.giftXpPerCoin);
         break;
       }
-      case 'follow': S.totals.follows++; k.follows++; k.score += 25; gainXp(GAIN.followXp); feed('➕ <b>' + esc(name) + '</b> became a keeper', 'follow'); Creature.bow(); Creature.burstHearts(6); speak('follow', { name: name }); break;
+      case 'follow': S.totals.follows++; k.follows++; k.score += 25; gainXp(GAIN.followXp); feed('➕ <b>' + esc(name) + '</b> became a keeper', 'follow'); Creature.bow(); Creature.burstHearts(6); speak('follow', { name: name }); if (window.Director) Director.newKeeper(name); break;
       case 'share': S.totals.shares++; k.shares++; k.score += 30; gainXp(GAIN.shareXp); feed('🔗 <b>' + esc(name) + '</b> shared the nest', 'follow'); Creature.spin(); speak('share', { name: name }); break;
     }
   }
 
   function command(name, text) {
+    if (window.Director && Director.onComment(name, text)) { Creature.lookAtCamera(2); return; }
     const t = text.toLowerCase();
     if (/\b(dance|danse|baile)\b/.test(t)) { Creature.dance(5); speak('dance', { name: name }); }
     else if (/\b(sing|chante|song)\b/.test(t)) { Creature.sing(4); speak('sing'); }
@@ -178,7 +183,6 @@
     else if (/\b(hi|hello|hey|salut|bonjour|hola|coucou)\b/.test(t)) { Creature.wave(); speak('hello', { name: name }); }
     else if (/who are you|what are you|qui es-tu|c'est quoi/.test(t)) { Creature.lookAtCamera(4); speak('who'); }
     else if (/\b(feed|eat|food|mange)\b/.test(t)) { Creature.beg(3); speak('hungry', { name: name }); }
-    else if (t.indexOf('?') >= 0) { Creature.lookAtCamera(4); aiSay('A viewer named ' + name + ' asks: "' + text.slice(0, 140) + '". Answer them in one or two short playful sentences.', 'thinking', { name: name }); }
     else if (Math.random() < 0.35) { Creature.hop(0.5); aiSay('A viewer named ' + name + ' says: "' + text.slice(0, 140) + '". React in one short sentence, address them by name.', 'comment', { name: name }); }
   }
 
@@ -204,7 +208,7 @@
     } else { S.food = clamp(S.food - RATE.food * 0.2 * dt, 0, 100); if (S.xp === 0 && Math.random() < dt * 0.05) Creature.shiver(0.8); }
     if (S.food <= 2) { if (!S.fadingSince) S.fadingSince = now; } else S.fadingSince = 0;
     const m = computeMood(); if (m !== mood) { mood = m; moodSince = now; Creature.setMood(m); if (m === 'hungry') { Creature.beg(4); speak('hungry'); } if (m === 'fading') speak('fading', {}, 8000); }
-    Creature.setVitals(S);
+    Creature.setVitals(S); if (S.stage === 0) Creature.setHatchProgress(S.xp / STAGES[1].xp);
     nextDirector -= dt; if (nextDirector <= 0) { director(); nextDirector = 6 + Math.random() * 8; }
     saveIn -= dt; if (saveIn <= 0) { save(); saveIn = 5; }
     renderHud();
@@ -266,7 +270,7 @@
     requestAnimationFrame(anchorBubble);
     const b = $('bubble'); if (!b || b.classList.contains('hidden')) return;
     const p = Creature.headScreenPos(); const portrait = innerHeight > innerWidth;
-    const top = $('top').offsetHeight + ($('banner').classList.contains('hidden') ? 70 : 175), kw = portrait ? 0 : 230; // stay below the strip/banner, clear of the keepers panel
+    const top = $('top').offsetHeight + 24 + b.offsetHeight + ($('banner').classList.contains('hidden') && $('poll').classList.contains('hidden') ? 0 : 150), kw = portrait ? 0 : 230; // stay below the strip/banner, clear of the keepers panel
     const x = clamp(p.x, 190, innerWidth - 190 - kw), y = clamp(p.y, top, innerHeight - 170);
     b.style.transform = 'translate(-50%, -100%) translate(' + x + 'px,' + (y - 12) + 'px)';
   }
@@ -285,6 +289,7 @@
       if (e.key === 'g' || e.key === 'G') handle({ type: 'gift', username: 'streamer', giftName: 'Galaxy', coins: 1000 });
       if (e.key === 'l' || e.key === 'L') handle({ type: 'like', username: 'streamer', count: 25 });
       if (e.key === 'e' || e.key === 'E') forceEvolve();
+      if (e.key === 'p' || e.key === 'P') { if (window.Director) Director.beat(); }
       if (e.key === 'r' || e.key === 'R') { if (confirm('Reset ' + S.name + ' to an egg?')) reset(); }
     });
     document.getElementById('help').addEventListener('click', function() { this.classList.toggle('open'); });
@@ -293,5 +298,5 @@
 
   function reset() { S = fresh(); save(); location.reload(); }
   function forceEvolve() { if (!nextStage()) return; S.xp = Math.max(S.xp, nextStage().xp); lastEvolveAt = 0; gainXp(0); }
-  window.Game = { handle: handle, state: function() { return S; }, mood: function() { return mood; }, STAGES: STAGES, say: say, reset: reset, evolve: forceEvolve };
+  window.Game = { handle: handle, state: function() { return S; }, mood: function() { return mood; }, STAGES: STAGES, say: say, tts: tts, feed: feed, topKeepers: topKeepers, reset: reset, evolve: forceEvolve };
 })();

@@ -2,7 +2,9 @@
 
 A living 3D creature raised by a TikTok Live audience.
 
-Likes feed it. Comments make it talk back. Gifts make it grow through six forms, from egg to cosmic beast. It gets hungry, falls asleep, gets bored when nobody is around, remembers the people who feed it, and does things on its own between two interactions. Think tamagotchi, except the whole chat is the parent and the pet has a voice.
+Likes feed it. Comments make it talk back. Gifts make it grow through eight forms, from egg to legendary and beyond. It gets hungry, falls asleep, gets bored when nobody is around, remembers the people who feed it, and does things on its own between two interactions. Think tamagotchi, except the whole chat is the parent and the pet has a voice.
+
+It is not alone. **Pip**, a pink fairy-light, hosts the show: she greets new keepers, explains what a like does, asks the chat questions and runs polls the viewers decide with `1` or `2`. **Moss**, a 400-year-old turtle on the table edge, answers the deep questions with a straight face. An AI director picks the next beat every half minute from what the chat just said.
 
 **Demo (simulated audience):** https://sociobeast-living-island.vercel.app/
 
@@ -21,6 +23,8 @@ The game itself runs in one browser tab, the OBS source. It is the authority: vi
 | `web/` | The game. `index.html` is the static demo, `index.php` the live page. No build step. |
 | `web/assets/creature.js` | Procedural Three.js creature: body, face, horns, arms, tail, wings, halo, nest, sky, effects. |
 | `web/assets/game.js` | Rules: vitals, moods, evolution, keepers, the creature's own behaviour, HUD, persistence. |
+| `web/assets/cast.js` | Pip and Moss, the supporting characters. |
+| `web/assets/director.js` | The show-runner: polls, viewer questions, greetings, banter (LLM or scripted). |
 | `web/assets/audience.js` | Event source: simulated crowd (demo) or the PHP relay (live). |
 | `web/api/` | `tiktok.php` relay, `think.php` LLM voice, `config.php`. |
 | `api/think.js` | Same voice as a Vercel function, for the demo (`ANTHROPIC_API_KEY` in the project env). |
@@ -44,7 +48,7 @@ cd bridge && npm install && npm start  # after filling bridge/.env
 
 OBS: browser source on `https://your-host/index.php` at 1080×1920. Add `?voice=1` for text-to-speech, `?name=Momo` to rename the creature.
 
-Keys on the page: `H` hide HUD · `L` 25 likes · `G` Galaxy gift · `E` force evolution · `V` voice · `R` reset to egg.
+Keys on the page: `H` hide HUD · `L` 25 likes · `G` Galaxy gift · `E` force evolution · `P` next show beat · `V` voice · `R` reset to egg.
 
 ## Rules in one table
 
@@ -56,7 +60,7 @@ Keys on the page: `H` hide HUD · `L` 25 likes · `G` Galaxy gift · `E` force e
 | ➕ follow | +25 XP, the viewer becomes a keeper. |
 | 🔗 share | +30 XP. |
 
-Forms: Egg 0 · Hatchling 150 · Sprout 400 · Young Beast 2000 · Guardian 8000 · Cosmic Beast 25000 XP, at most one evolution per minute.
+Forms: Egg 0 · Baby 100 · Child 1000 · Teen 5000 · Adult 10000 · Special 50000 · Legendary 100000 · Infinite 250000 XP, at most one evolution per minute. A question with a `?` in the chat gets answered by name. During a poll, `1` or `2` is a vote.
 
 Food drains in about seven minutes, joy in twelve, energy in fifteen. At zero food the creature fades until someone feeds it. At zero energy it sleeps.
 

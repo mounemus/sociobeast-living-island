@@ -25,16 +25,18 @@ Away from the stream, food and joy keep draining at half speed for up to 30 minu
 
 ## Evolution
 
-Six forms. XP comes from every interaction; gifts are the accelerator (3 XP per coin). One evolution per minute maximum, so a big gift pays off over several minutes of spectacle instead of one flash.
+Eight forms, thresholds taken from the launch poster (likes count as XP, a gift is 3 XP per coin). XP comes from every interaction; gifts are the accelerator (3 XP per coin). One evolution per minute maximum, so a big gift pays off over several minutes of spectacle instead of one flash.
 
 | Form | XP | New parts |
 |---|---|---|
-| Egg | 0 | spotted shell that wobbles when warmed |
-| Hatchling | 150 | body, face, feet, arms, tail |
-| Sprout | 400 | horns, mushrooms grow on the nest |
-| Young Beast | 2000 | ear tufts, larger, brighter |
-| Guardian | 8000 | wings of light |
-| Cosmic Beast | 25000 | crown of orbiting stars, spirit stones lit |
+| Egg | 0 | white shell with a glowing mark; cracks light up as hatching nears |
+| Baby | 100 | plush white chibi body, glossy black eyes, blush, yellow tuft, arms, tail |
+| Child | 1000 | cyan crystal crest, tiny fangs |
+| Teen | 5000 | collar with a glowing pendant |
+| Adult | 10000 | pink→cyan membrane wings |
+| Special | 50000 | crystals on the back, belly glyph, bigger wings |
+| Legendary | 100000 | feathered wings, gold crown, aura |
+| Infinite | 250000 | dark cosmic coat, orbiting stars ("and if we went even further?") |
 
 ## Mood
 
@@ -47,6 +49,10 @@ Every 6 to 14 seconds the creature chooses an action by itself: wander, hop, pla
 ## Voice
 
 Scripted lines cover every event and mood, with the viewer's name inserted. In live mode, questions in the chat and idle thoughts go through `api/think.php` (Anthropic or OpenAI) with a short system prompt that fixes the character: gentle, funny, a little cheeky, first person, under 140 characters, never mentions being an AI. Scripted lines are the fallback and the demo voice. Optional text-to-speech with a high pitch.
+
+## The cast and the director
+
+Pip (host) and Moss (elder) give the show a second and third voice so the beast never has to explain itself. The director runs a beat every 20 to 40 seconds, in this priority: greet new keepers, answer a queued viewer question by name (Moss for deep ones, the beast for questions about itself, Pip otherwise), open a two-option poll the chat votes on with `1`/`2` (result applied to the beast: dance, sing, spin, nap), a tip, then banter about the current mood. With an LLM the beat is generated as JSON (lines, action, poll) from the last six comments and the vitals; without one a scripted bank plays.
 
 ## Memory
 
