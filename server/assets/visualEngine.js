@@ -1370,6 +1370,165 @@
     }
   }
 
+
+  // ═══════════════════════════════════════════════════════════════
+  // v14 — CINEMATIC VISUALS: bloom, mist, pond, light shafts
+  // ═══════════════════════════════════════════════════════════════
+  let composer = null, bloomPass = null;
+  const mistPlanes = [], shafts = [];
+  let pond = null, pondT = 0, embersPts = null;
+  const unlocked = {};
+
+  function setupPostFX() {
+    if (composer || !THREE.EffectComposer || !THREE.UnrealBloomPass) return;
+    try {
+      composer = new THREE.EffectComposer(renderer);
+      composer.addPass(new THREE.RenderPass(scene, camera));
+      bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.6, 0.82);
+      composer.addPass(bloomPass);
+      window.addEventListener('resize', function() { composer.setSize(innerWidth, innerHeight); });
+      console.log('[V] Bloom enabled');
+    } catch (e) { composer = null; console.warn('[V] PostFX unavailable', e.message); }
+  }
+
+  function makeMistTexture() {
+    const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+    const grd = g.createRadialGradient(128, 128, 10, 128, 128, 128); grd.addColorStop(0, 'rgba(255,255,255,0.35)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd; g.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c);
+  }
+
+  function unlockMist() {
+    if (unlocked.mist) return; unlocked.mist = true;
+    const tex = makeMistTexture();
+    for (let i = 0; i < 18; i++) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(22, 9), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.22, depthWrite: false, color: 0xbfe6d0 }));
+      const a = Math.random() * 6.283, d = 6 + Math.random() * 22;
+      m.position.set(Math.cos(a) * d, 0.8 + Math.random() * 2.5, Math.sin(a) * d); m.rotation.y = Math.random() * 6.283;
+      m.userData = { speed: 0.2 + Math.random() * 0.4, phase: Math.random() * 6.283 };
+      scene.add(m); mistPlanes.push(m);
+    }
+  }
+
+  function unlockPond() {
+    if (unlocked.pond) return; unlocked.pond = true;
+    pond = new THREE.Mesh(new THREE.CircleGeometry(4.5, 48), new THREE.MeshStandardMaterial({ color: 0x3a8fb0, emissive: 0x0a3040, emissiveIntensity: 0.6, roughness: 0.15, metalness: 0.6, transparent: true, opacity: 0.85 }));
+    pond.rotation.x = -Math.PI / 2; pond.position.set(0, 0.12, 0); scene.add(pond);
+    for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.RingGeometry(1 + i * 1.2, 1.15 + i * 1.2, 48), new THREE.MeshBasicMaterial({ color: 0xbfe6ff, transparent: true, opacity: 0.25, depthWrite: false })); r.rotation.x = -Math.PI / 2; r.position.y = 0.14; r.userData.i = i; pond.add(r); }
+    const glow = new THREE.PointLight(0x6fc8ff, 1.5, 18); glow.position.set(0, 1.5, 0); scene.add(glow);
+  }
+
+  function unlockShafts() {
+    if (unlocked.shafts) return; unlocked.shafts = true;
+    for (let i = 0; i < 7; i++) {
+      const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 3.5, 40, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff3c0, transparent: true, opacity: 0.045, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+      const a = Math.random() * 6.283, d = 4 + Math.random() * 18;
+      sh.position.set(Math.cos(a) * d, 20, Math.sin(a) * d); sh.rotation.z = 0.35; sh.rotation.y = a; sh.userData.phase = Math.random() * 6.283;
+      scene.add(sh); shafts.push(sh);
+    }
+  }
+
+  function unlockEmbers() {
+    if (unlocked.embers) return; unlocked.embers = true;
+    const n = 250, geo = new THREE.BufferGeometry(), pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const a = Math.PI / 2 * 1 + Math.random() * Math.PI / 2, d = 6 + Math.random() * 18; pos[i * 3] = Math.cos(a) * d; pos[i * 3 + 1] = Math.random() * 6; pos[i * 3 + 2] = Math.sin(a) * d; }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    embersPts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xff9a4a, size: 0.14, transparent: true, opacity: 0.85, depthWrite: false }));
+    scene.add(embersPts);
+  }
+
+  function applyUnlocks(list) {
+    (list || []).forEach(function(u) {
+      if (u === 'mist') unlockMist(); if (u === 'pond') unlockPond(); if (u === 'shafts') unlockShafts(); if (u === 'embers') unlockEmbers();
+      if (u === 'bloom' && bloomPass) bloomPass.strength = 0.9;
+      if (CAST[u]) showCharacter(u, true);
+    });
+  }
+
+  function updateCinematic(dt) {
+    mistPlanes.forEach(function(m) { m.position.x += Math.cos(m.userData.phase) * m.userData.speed * dt; m.position.z += Math.sin(m.userData.phase) * m.userData.speed * dt; m.material.opacity = 0.14 + 0.1 * Math.sin(t * 0.3 + m.userData.phase); if (m.position.length() > 30) m.position.multiplyScalar(0.2); m.lookAt(camera.position.x, m.position.y, camera.position.z); });
+    shafts.forEach(function(sh) { sh.material.opacity = (0.03 + 0.03 * Math.sin(t * 0.4 + sh.userData.phase)) * dayFactor; });
+    if (pond) { pondT += dt; pond.children.forEach(function(r) { const k = ((pondT * 0.25 + r.userData.i / 3) % 1); r.scale.setScalar(0.4 + k * 1.2); r.material.opacity = 0.3 * (1 - k); }); }
+    if (embersPts) { const pos = embersPts.geometry.attributes.position; for (let j = 0; j < pos.count; j++) { let y = pos.getY(j) + dt * (0.8 + (j % 5) * 0.2); if (y > 7) y = 0; pos.setY(j, y); } pos.needsUpdate = true; }
+    updateCast(dt);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // v14 — THE CAST (original characters, procedural low-poly)
+  // ═══════════════════════════════════════════════════════════════
+  const CAST = {};
+  function mat(c, e, ei) { return new THREE.MeshStandardMaterial({ color: c, emissive: e || 0x000000, emissiveIntensity: ei || 0, roughness: 0.85 }); }
+
+  function buildMossback() {
+    const g = new THREE.Group();
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(4.2, 18, 12, 0, 6.283, 0, 1.6), mat(0x4a6a3a)); shell.position.y = 2.2; shell.scale.y = 0.75; g.add(shell);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(3.6, 14, 10), mat(0x6a5a45)); body.position.y = 2; body.scale.y = 0.55; g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8), mat(0x6a5a45, 0x203010, 0.2)); head.position.set(4.3, 2.2, 0); g.add(head);
+    [[-1, 1, 1], [1, 1, 1], [-1, 1, -1], [1, 1, -1]].forEach(function(o) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 1.8, 8), mat(0x5a4a38)); leg.position.set(o[0] * 2.4, 0.9, o[2] * 1.8); g.add(leg); });
+    for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283, tr = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 2.2, 6), mat(0x3a2a15)); tr.position.set(Math.cos(a) * 1.8, 5.4, Math.sin(a) * 1.8 * 0.75); g.add(tr); const fo = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), mat(0x4fa04f, 0x1a4a1a, 0.15)); fo.position.set(Math.cos(a) * 1.8, 6.8, Math.sin(a) * 1.8 * 0.75); g.add(fo); }
+    const gl = new THREE.PointLight(0x9fdf9f, 1.2, 14); gl.position.y = 6; g.add(gl);
+    g.scale.setScalar(0.9); g.userData = { kind: 'mossback', angle: 0, radius: 21, speed: 0.045 }; return g;
+  }
+  function buildEmberEye() {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 3.2, 12), mat(0x8a8a90)); body.rotation.z = Math.PI / 2; body.position.y = 1.6; g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 10), mat(0x9a9aa0)); head.position.set(2, 2.1, 0); g.add(head);
+    [-1, 1].forEach(function(sgn) { const ear = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 6), mat(0x7a7a80)); ear.position.set(2, 2.85, sgn * 0.4); g.add(ear);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff8030 })); eye.position.set(2.6, 2.25, sgn * 0.3); g.add(eye); });
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function(o) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 1.4, 6), mat(0x7a7a80)); leg.position.set(o[0] * 1.1, 0.7, o[1] * 0.55); g.add(leg); });
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.16, 1.6, 6), mat(0x7a7a80)); tail.position.set(-2.1, 2.2, 0); tail.rotation.z = -0.8; g.add(tail);
+    const gl = new THREE.PointLight(0xff8030, 0.8, 8); gl.position.set(2.6, 2.2, 0); g.add(gl);
+    g.userData = { kind: 'ember_eye', angle: Math.PI, radius: 24, speed: 0.12, prowl: 0 }; return g;
+  }
+  function buildBlightling() {
+    const g = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshStandardMaterial({ color: 0x120306, emissive: 0x6a0016, emissiveIntensity: 0.9, roughness: 0.4 })); core.position.y = 2; g.add(core);
+    const tendrils = [];
+    for (let i = 0; i < 26; i++) { const tnd = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.16, 3.5 + Math.random() * 2.5, 5), new THREE.MeshStandardMaterial({ color: 0x0a0104, emissive: 0x3a000c, emissiveIntensity: 0.6 })); tnd.position.y = 2; tnd.userData = { a: Math.random() * 6.283, b: Math.random() * 6.283, ph: Math.random() * 6.283 }; g.add(tnd); tendrils.push(tnd); }
+    const gl = new THREE.PointLight(0xff1040, 2, 20); gl.position.y = 2.5; g.add(gl);
+    g.userData = { kind: 'blightling', angle: Math.PI * 0.5, radius: 15, speed: 0.06, tendrils: tendrils }; return g;
+  }
+  function buildHuman(color, lantern, kind, side) {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.42, 1.5, 10), mat(color)); body.position.y = 1.0; g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), mat(kind === 'wanderer' ? 0xf0f0ff : 0xd8b090)); head.position.y = 2.0; g.add(head);
+    if (kind === 'wanderer') { const mask = new THREE.Mesh(new THREE.CircleGeometry(0.26, 16), new THREE.MeshBasicMaterial({ color: 0xffffff })); mask.position.set(0.28, 2.02, 0); mask.rotation.y = Math.PI / 2; g.add(mask); }
+    if (lantern) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), new THREE.MeshBasicMaterial({ color: lantern })); l.position.set(0.5, 1.3, 0.3); g.add(l); const gl = new THREE.PointLight(lantern, 1.4, 9); gl.position.copy(l.position); g.add(gl); }
+    g.userData = { kind: kind, angle: side === 'industry' ? Math.PI / 2 * 1.5 : 0, radius: kind === 'wanderer' ? 8 : 20, speed: 0.08, side: side }; return g;
+  }
+
+  function showCharacter(key, on) {
+    if (on && !CAST[key]) {
+      const b = { mossback: buildMossback, ember_eye: buildEmberEye, blightling: buildBlightling,
+                  ironwright: function() { return buildHuman(0xb06030, 0xffb060, 'ironwright', 'industry'); },
+                  wanderer: function() { return buildHuman(0x505070, 0xc0d0ff, 'wanderer', 'neutral'); } }[key];
+      if (!b) return; let g; try { g = b(); } catch (e) { console.warn('[V] cast build failed', key, e.message); return; } g.userData.alpha = 0; g.scale.multiplyScalar(0.001); scene.add(g); CAST[key] = g;
+      burst(Math.cos(g.userData.angle) * g.userData.radius, 1, Math.sin(g.userData.angle) * g.userData.radius, 200, key === 'blightling' ? 0xff1040 : 0xffffff, { spread: 3, speed: 2, up: 4, size: 0.25, life: 3 });
+    }
+    if (!on && CAST[key]) { scene.remove(CAST[key]); delete CAST[key]; }
+  }
+
+  function updateCast(dt) {
+    Object.keys(CAST).forEach(function(k) {
+      const g = CAST[k], u = g.userData;
+      if (u.alpha < 1) { u.alpha = Math.min(1, u.alpha + dt * 0.5); const sc = (k === 'mossback' ? 0.9 : 1) * (0.001 + 0.999 * u.alpha); g.scale.setScalar(sc); }
+      if (k === 'ember_eye') { u.prowl += dt; u.speed = 0.08 + 0.1 * Math.max(0, Math.sin(u.prowl * 0.3)); }
+      u.angle += u.speed * dt * (k === 'wanderer' ? 1 : 1) * (k === 'blightling' ? 1 : 1);
+      const x = Math.cos(u.angle) * u.radius, z = Math.sin(u.angle) * u.radius;
+      g.position.set(x, k === 'blightling' ? 0.4 + Math.sin(t * 2) * 0.3 : 0, z);
+      g.rotation.y = -u.angle + (k === 'mossback' || k === 'ember_eye' ? Math.PI : Math.PI);
+      if (k === 'mossback') g.position.y = Math.abs(Math.sin(t * 0.8)) * 0.15;
+      if (k === 'blightling') u.tendrils.forEach(function(tn, i) { tn.rotation.x = Math.sin(t * 1.5 + tn.userData.ph) * 0.9 + tn.userData.a; tn.rotation.z = Math.cos(t * 1.1 + tn.userData.ph) * 0.9 + tn.userData.b; });
+      if (k === 'ironwright' || k === 'wanderer') g.position.y = Math.abs(Math.sin(t * 4)) * 0.05;
+    });
+  }
+
+  function bossPulse(strength) {
+    const b = CAST.blightling; if (!b) return;
+    burst(b.position.x, 2, b.position.z, 300, 0xff1040, { spread: 2, speed: 3 + strength * 3, up: 3, size: 0.25, life: 3 });
+    shake(0.3 + strength * 0.5);
+  }
+  function castSpeakFx(key) { const g = CAST[key]; if (!g) return null; burst(g.position.x, 2.5, g.position.z, 60, 0xffffff, { spread: 1, speed: 0.6, up: 1.5, size: 0.15, life: 2 }); return { x: g.position.x, y: 3.5, z: g.position.z }; }
+
   // ═══ PUBLIC API ═══
   window.VisualEngine = {
     init() {
@@ -1378,6 +1537,7 @@
       
       try {
         initScene();
+        setupPostFX();
         console.log('[V] Scene initialized');
       } catch(e) {
         console.error('[V] initScene failed:', e);
@@ -1430,11 +1590,12 @@
         updateAutoRotate(dt);
         updateWorldFx(dt);
         updateWalkersAndRain(dt);
+        updateCinematic(dt);
         tryDuplicate(dt);
         updateVanishBehavior(dt);
         update(dt);
         updateFireflies();
-        renderer.render(scene, camera);
+        if (composer) composer.render(); else renderer.render(scene, camera);
       })();
       
       console.log('[V] init() complete');
@@ -1467,6 +1628,8 @@
     spawnGuardian, jumpKodama, tintKodama, burst, meteorRain, setTerritories, setBiome, setDayTime, setSky, shake,
     growWorldTree, addFragment, projectToScreen, focusOn,
     setBalance, startRain, tallOneWalk,
+    applyUnlocks, showCharacter, bossPulse, castSpeakFx, getCast() { return CAST; },
+    setupPostFX,
     getKodama(id) { return kodamas.find(function(k) { return k.id === id; }) || null; },
     getGuardians() { return kodamas.filter(function(k) { return k.isGuardian; }); },
     spawnSpirits(n, x, z) { for (let i = 0; i < n; i++) { if (kodamas.length >= MAX_KODAMAS) break; const a = Math.random() * 6.28, d = Math.random() * 3; const k = createKodama((x || 0) + Math.cos(a) * d, (z || 0) + Math.sin(a) * d, 0.3 + Math.random() * 0.6); if (k) { k.currentAlpha = 0; } } },

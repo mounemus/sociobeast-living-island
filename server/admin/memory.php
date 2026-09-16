@@ -110,6 +110,7 @@ $commands = $db->query("SELECT * FROM command_usage ORDER BY use_count DESC LIMI
         
         <nav>
             <a href="index.php">📊 Dashboard</a>
+            <a href="island.php">🌲 Island</a>
             <a href="config.php">⚙️ Configuration</a>
             <a href="memory.php">🧠 Memory</a>
             <a href="mythology.php">📜 Mythology</a>

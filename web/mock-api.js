@@ -6,7 +6,7 @@
  */
 (function() {
   'use strict';
-  const LS = 'sociobeast_demo_v13';
+  const LS = 'sociobeast_demo_v14';
   const now = () => Math.floor(Date.now() / 1000);
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -48,6 +48,22 @@
     { q: 'Should the island bear a name?', options: ['Aether', 'Kodamaya', 'Leave it nameless'] }
   ];
   const WORLD = ['spirit_lights', 'mother_tree', 'firefly_migration', 'tall_one', 'first_rain', 'prophecy'];
+  const CAST = {
+    mossback: { name: 'Mossback', icon: '🐢', color: '#6fa86f', lines: ['I have carried this grove for a thousand springs. I can carry your quarrels too.', 'Slow down. The moss is listening.'] },
+    ember_eye: { name: 'Ember-Eye', icon: '🐆', color: '#d9534f', lines: ['Humans smell of smoke and apology. Prove you are more than that.', 'Courage I respect. Greed I bury.'] },
+    ironwright: { name: 'The Ironwright', icon: '⚒️', color: '#e0a050', lines: ['We do not hate the forest. We simply cannot eat it.', 'Iron feeds children. Show me a tree that does.'] },
+    wanderer: { name: 'The Wanderer', icon: '🎭', color: '#c0c0ff', lines: ['Who here has asked the river what it wants?', 'Every side is right about something. That is the problem.'] },
+    blightling: { name: 'The Blightling', icon: '🩸', color: '#3a0a12', lines: ['...see me... see me...', 'you made me. you made me.'] },
+    tall_one: { name: 'The Tall One', icon: '🌑', color: '#9fd0ff', lines: ['…'] }
+  };
+  const CHAPTERS = [
+    { n: 1, title: 'The Sprouting', goal: 'Reach 30 spirits and welcome 3 guardians', check: { spirits: 30, new_guardians: 3 }, unlock: ['pond'], intro: 'A grove wakes on a rock adrift in the dark. Small spirits open their eyes.', mood: 'gentle' },
+    { n: 2, title: 'Iron Comes', goal: 'The Forge reaches 60% once — then bring the balance back above 0', check: { forge_60: 1, balance_pos: 1 }, unlock: ['ironwright', 'embers'], intro: 'Smoke rises on the eastern shore. The Ironwright has come, and her people are hungry.', mood: 'tempting' },
+    { n: 3, title: 'The Curse Awakens', goal: 'Defeat the Blightling: heal 120 curse points with !calm, !pray and rain', check: { healed: 120 }, unlock: ['blightling', 'mist'], intro: 'Something black moves under the roots. Hatred has found a body.', mood: 'hostile' },
+    { n: 4, title: 'The Walking Hill', goal: 'Keep the balance green for 3 minutes so Mossback wakes', check: { green_minutes: 3 }, unlock: ['mossback', 'shafts'], intro: 'The old tortoise stirs. A whole forest rides on its back.', mood: 'wise' },
+    { n: 5, title: 'The Long Night', goal: 'Survive the Tall One once and hold 10 Council votes', check: { tall_one: 1, votes: 10 }, unlock: ['ember_eye', 'stars'], intro: 'The night grows tall. Ember-Eye watches the humans from the ridge.', mood: 'solemn' },
+    { n: 6, title: 'Balance', goal: 'Every people above 20% and the curse below 10%', check: { all_peoples_20: 1, curse_low: 1 }, unlock: ['wanderer', 'bloom'], intro: 'Nobody won. Everyone lives. This is the hardest chapter, and the only one that matters.', mood: 'serene' }
+  ];
   const SPEECH = {
     monologue: ['The forest does not hate the Forge. It only remembers.', 'Listen. Even the smallest kodama hears the rain before it falls.', 'We drift between stars, and still the moss hums beneath our feet.', 'There is no villain here. Only hunger, and the patience of trees.'],
     prophecy: ['When the four peoples share one fire, a new grove will rise from the void.', 'The Tall One will pass on the night the Forge falls silent.', 'A curse is only love that lost its way home.'],
@@ -77,7 +93,8 @@
               islandTime: 0.3, biome: 'grove', mult: 1, multUntil: 0, lastTick: t, lastCouncil: t,
               winStart: t, winCount: 0, quests: rollQuests(), metrics: {} },
       clans: Object.fromEntries(Object.keys(CLANS).map(k => [k, { influence: 25, members: 0, xp: 0, wins: 0, lastPower: 0 }])),
-      guardians: {}, vote: null, lore: [], fragments: [], events: [], eventId: 0
+      guardians: {}, vote: null, lore: [], fragments: [], events: [], eventId: 0,
+      director: { chapter: 1, enabled: true, aggressiveness: 0.5, lastAction: now(), bossActive: false, bossHp: 0, greenSec: 0, unlocks: [], cm: {}, log: [], cast: {} }
     };
   }
   function save() { try { localStorage.setItem(LS, JSON.stringify(D)); } catch (e) {} }
@@ -171,7 +188,7 @@
     if (/^[123]$/.test(cmd)) return castVote(username, +cmd);
     const g = D.guardians[username];
     switch (cmd) {
-      case 'calm': case 'pray': case 'breathe': D.game.chaos = Math.max(0, D.game.chaos - 5);
+      case 'calm': case 'pray': case 'breathe': metric('healed', Math.min(5, D.game.chaos)); D.game.chaos = Math.max(0, D.game.chaos - 5);
         if (D.game.chaos <= 0 && now() < D.game.fracturedUntil) { D.game.fracturedUntil = 0; D.game.mult = 2; D.game.multUntil = now() + 120; metric('fractures_survived'); queue('fracture_healed', { by: username }); }
         break;
       case 'clan': setClan(username, arg); break;
@@ -206,7 +223,8 @@
       queue('world_event', { event: ev, number: G.worldEvents });
       if (ev === 'prophecy') queue('request_speech', { mode: 'prophecy' });
       if (ev === 'mother_tree') queue('request_speech', { mode: 'mythology' });
-      if (ev === 'first_rain') { G.chaos = Math.max(0, G.chaos - 40); metric('rains'); }
+      if (ev === 'first_rain') { metric('healed', Math.min(40, G.chaos)); G.chaos = Math.max(0, G.chaos - 40); metric('rains'); }
+      if (ev === 'tall_one') metric('tall_one_events');
       if (ev === 'tall_one') queue('request_speech', { mode: 'reactive', context: 'The Tall One is crossing the island. Speak in awe and silence.' });
     }
   }
@@ -243,11 +261,51 @@
     if (D.clans.forge.influence > 75) G.chaos = Math.min(100, G.chaos + 1.5 * m);
     G.islandTime = (G.islandTime + m / 45) % 1;
     closeCouncil(); if (t - G.lastCouncil > 4 * 60) openCouncil();
+    directorTick(m, t);
     // creature decay
     const s = D.state; s.energy = Math.max(10, s.energy - 0.2 * m); s.hunger = Math.min(100, s.hunger + 0.3 * m);
     Object.keys(s.emotions).forEach(k => s.emotions[k] += (50 - s.emotions[k]) * 0.01 * m);
     s.age = t - s.birth; s.evolution_stage = s.total_xp > 1500 ? 4 : s.total_xp > 800 ? 3 : s.total_xp > 350 ? 2 : s.total_xp > 100 ? 1 : 0;
   }
+
+  // ─── Nature plays (light Island Director) ───
+  function unlockTo(ch) { const R = D.director; R.unlocks = []; for (let c = 1; c <= ch; c++) CHAPTERS[c - 1].unlock.forEach(u => R.unlocks.push(u)); if (R.unlocks.includes('blightling') && ch === 3 && !R.bossActive) { R.bossActive = true; R.bossHp = 120; } ['ironwright', 'mossback', 'ember_eye', 'wanderer'].forEach(k => R.cast[k] = R.unlocks.includes(k)); R.cast.blightling = R.bossActive; }
+  function dlog(line) { D.director.log.push({ t: now(), line }); if (D.director.log.length > 30) D.director.log.shift(); queue('nature_move', { line, chapter: D.director.chapter }); }
+  function speak(who, line) { const c = CAST[who]; if (!c) return; queue('character_speak', { who, name: c.name, icon: c.icon, color: c.color, line: line || pick(c.lines) }); }
+  function directorTick(m, t) {
+    const R = D.director, G = D.game, M = D.game.metrics;
+    if (!R.unlocks.length) { unlockTo(1); dlog('Chapter 1 — ' + CHAPTERS[0].title + '. ' + CHAPTERS[0].intro); }
+    const forest = (D.clans.grove.influence + D.clans.fang.influence + D.clans.veil.influence) / 3, forge = D.clans.forge.influence, balance = (forest - forge) / 60;
+    const cm = R.cm;
+    if (forge >= 60) cm.forge_60 = 1;
+    if (balance > 0) { cm.balance_pos = 1; R.greenSec += m * 60; } else R.greenSec = Math.max(0, R.greenSec - m * 30);
+    cm.green_minutes = Math.round(R.greenSec / 60 * 10) / 10; cm.spirits = M.spirits || 0; cm.new_guardians = M.new_guardians || 0; cm.votes = M.votes || 0; cm.tall_one = M.tall_one_events || 0; cm.healed = M.healed || 0;
+    cm.all_peoples_20 = Math.min(...Object.values(D.clans).map(c => c.influence)) >= 20 ? 1 : 0; cm.curse_low = G.chaos < 10 ? 1 : 0;
+    if (R.bossActive) { R.bossHp = Math.max(0, 120 - (cm.healed || 0) + G.chaos * 0.2); if (cm.healed >= 120) { R.bossActive = false; R.bossHp = 0; G.chaos = 0; R.cast.blightling = false; dlog('The Blightling dissolves into rain. Hatred remembered how to be water.'); queue('boss_defeated', { name: 'The Blightling' }); } }
+    const ch = CHAPTERS[R.chapter - 1]; let done = true; Object.keys(ch.check).forEach(k => { if ((cm[k] || 0) < ch.check[k]) done = false; });
+    if (done && R.chapter < CHAPTERS.length) { queue('chapter_complete', { chapter: R.chapter, title: ch.title }); R.chapter++; R.cm = {}; R.greenSec = 0; unlockTo(R.chapter); const nx = CHAPTERS[R.chapter - 1]; dlog('Chapter ' + R.chapter + ' — ' + nx.title + '. ' + nx.intro); queue('chapter', chapterPub() ); G.mult = 1.5; G.multUntil = t + 180; }
+    const interval = 60 - 40 * R.aggressiveness;
+    if (R.enabled && t - R.lastAction > interval) {
+      R.lastAction = t;
+      const weakest = Object.keys(D.clans).sort((a, b) => D.clans[a].influence - D.clans[b].influence)[0];
+      const mood = ch.mood, r = Math.random;
+      const c = { rain: G.chaos / 100 * 1.4 + r() * 0.3, blight: (balance < -0.2 ? 0.8 : 0.1) + (mood === 'hostile' ? 0.5 : 0) + r() * 0.3, help_weak: (1 - D.clans[weakest].influence / 100) * 0.9 + r() * 0.3,
+                  tempt: (mood === 'tempting' ? 0.9 : 0.2) + r() * 0.3, character: (R.unlocks.length > 2 ? 0.6 : 0.1) + r() * 0.5, fireflies: 0.4 + r() * 0.3, council: (mood === 'solemn' || mood === 'serene' ? 0.5 : 0.2) + r() * 0.4 };
+      const act = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
+      switch (act) {
+        case 'rain': metric('healed', Math.min(25, G.chaos)); G.chaos = Math.max(0, G.chaos - 25); queue('world_event', { event: 'first_rain', number: 0, by: 'nature' }); dlog('Nature calls the rain. The curse loosens its grip.'); break;
+        case 'blight': G.chaos = Math.min(100, G.chaos + 12 + 15 * R.aggressiveness); queue('blight', { strength: R.aggressiveness, boss: R.bossActive }); dlog('Black tendrils push through the roots. The island tests the humans.'); break;
+        case 'help_weak': D.clans[weakest].influence = Math.min(100, D.clans[weakest].influence + 12); queue('nature_gift', { clan: weakest, amount: 12 }); dlog('Nature leans toward the ' + CLANS[weakest].name + ', who were losing ground.'); break;
+        case 'tempt': D.clans.forge.influence = Math.min(100, D.clans.forge.influence + 8); G.mult = 1.5; G.multUntil = t + 60; speak('ironwright'); dlog('The Ironwright lights the furnaces: ×1.5 XP for a minute, and the forest holds its breath.'); break;
+        case 'character': { const present = Object.keys(R.cast).filter(k => R.cast[k]); if (present.length) { const who = pick(present); speak(who); dlog(CAST[who].name + ' speaks.'); } break; }
+        case 'fireflies': queue('world_event', { event: 'firefly_migration', number: 0, by: 'nature' }); dlog('Nature sends fireflies to call the humans back.'); break;
+        case 'council': openCouncil(); dlog('The Wanderer convenes the Council.'); break;
+      }
+    }
+  }
+  function chapterPub() { const R = D.director, ch = CHAPTERS[R.chapter - 1]; const progress = {}; Object.keys(ch.check).forEach(k => progress[k] = { value: R.cm[k] || 0, target: ch.check[k] }); return { number: R.chapter, total: CHAPTERS.length, title: ch.title, goal: ch.goal, progress, unlocks: R.unlocks, mood: ch.mood, intro: ch.intro }; }
+  function directorPub() { const R = D.director; const cast = {}; Object.keys(CAST).forEach(k => cast[k] = Object.assign({}, CAST[k], { present: !!R.cast[k] })); return { enabled: R.enabled, aggressiveness: R.aggressiveness, chapter: chapterPub(), boss: { active: R.bossActive, hp: Math.round(R.bossHp), max: 120 }, cast, log: R.log.slice(-12) }; }
+
   function gameState() {
     tick(); const G = D.game, t = now();
     const forest = (D.clans.grove.influence + D.clans.fang.influence + D.clans.veil.influence) / 3, balance = Math.max(-1, Math.min(1, (forest - D.clans.forge.influence) / 60));
@@ -255,7 +313,7 @@
       fractured: t < G.fracturedUntil, fracturedRemaining: Math.max(0, G.fracturedUntil - t), fractures: G.fractures, worldEvents: G.worldEvents,
       islandTime: G.islandTime, xpMultiplier: t < G.multUntil ? G.mult : 1, xpMultiplierRemaining: Math.max(0, G.multUntil - t),
       clans: Object.fromEntries(Object.keys(CLANS).map(k => [k, Object.assign({}, CLANS[k], { influence: Math.round(D.clans[k].influence * 10) / 10, members: D.clans[k].members, xp: D.clans[k].xp, wins: D.clans[k].wins })])),
-      quests: G.quests, vote: openVote(), leaderboard: leaderboard(5), guardianCount: Object.keys(D.guardians).length, lore: D.lore.slice(-3) };
+      quests: G.quests, vote: openVote(), leaderboard: leaderboard(5), director: directorPub(), guardianCount: Object.keys(D.guardians).length, lore: D.lore.slice(-3) };
   }
   function endSeason() {
     const winner = Object.keys(D.clans).sort((a, b) => D.clans[b].xp - D.clans[a].xp)[0];
@@ -304,6 +362,14 @@
           if (action === 'report') { D.game.metrics.spirits = Math.max(D.game.metrics.spirits || 0, +body.spirits || 0); checkQuests(); save(); return json({ success: true }); }
           if (action === 'demo_event') return json({ success: true, result: handle(body.type || 'like', body) });
           if (action === 'end_season') return json(Object.assign({ success: true }, endSeason()));
+          if (action === 'director') return json({ success: true, director: directorPub(), chapters: CHAPTERS.map(c => ({ number: c.n, title: c.title, goal: c.goal, unlock: c.unlock })) });
+          if (action === 'admin') { const R = D.director;
+            if (body.op === 'director') { if (body.key === 'chapter') { R.chapter = Math.max(1, Math.min(CHAPTERS.length, +body.value)); R.cm = {}; unlockTo(R.chapter); queue('chapter', chapterPub()); } if (body.key === 'enabled') R.enabled = !!body.value; if (body.key === 'aggressiveness') R.aggressiveness = Math.max(0, Math.min(1, +body.value)); }
+            if (body.op === 'trigger') { if (body.event === 'speak') speak(body.who || 'wanderer'); else if (body.event === 'blight') queue('blight', { strength: 0.6 }); else if (body.event === 'council') openCouncil(); else queue('world_event', { event: body.event, number: 0, by: 'admin' }); }
+            if (body.op === 'curse') D.game.chaos = Math.max(0, Math.min(100, D.game.chaos + (+body.delta || 0)));
+            if (body.op === 'reset_game') { localStorage.removeItem(LS); D = fresh(); }
+            save(); return json({ success: true, game: gameState() }); }
+          if (action === 'bridge_status') return json({ success: true, lastPing: 0, lastEvent: 'demo mode — browser mock', status: { demo: true }, username: 'demo', now: now() });
           return json({ error: 'unknown' });
         case 'tiktok': { const evs = body.events || (body.type ? [body] : []); evs.forEach(e => handle(e.type, e)); return json({ success: true, processed: evs.length, game: gameState() }); }
         default: return json({ success: true });

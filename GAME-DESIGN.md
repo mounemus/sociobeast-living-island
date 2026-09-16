@@ -1,5 +1,5 @@
 # 🌲 SOCIOBEAST — THE LIVING ISLAND
-### Game Design Document · v13 "Kodama Grove" · TikTok Live Edition
+### Game Design Document · v14 "Nature Plays" · TikTok Live Edition
 
 > **One-line pitch**: A floating island of ancient forest drifting through the cosmos, where **every TikTok viewer becomes a kodama** — a small tree spirit. Four peoples share the island: the Grove, the Forge, the Fang and the Veil. The audience does not watch a pet; **the audience is the ecosystem**, and what it does together during the live tips the balance between forest and iron, writes the island's mythology, and is inherited by the next live.
 
@@ -158,6 +158,28 @@ Three drawn per live from: reach 1 000 spirits · 20 new guardians · survive 2 
 An island day lasts 45 real minutes (dawn → day → dusk → night). At night the light turns indigo and the Beast dreams. A **season = one live**; at the end (`/admin` → *End season*) the people with the most XP reshapes the biome — a Forge victory leaves an ochre, ash-toned island for the next live, a Grove victory a lush one. Seasons and their winners are recorded.
 
 ---
+
+## 12b. Chapters (levels) & the Island Director — Nature plays
+
+The island is a **player**. `includes/island_director.php` runs inside every server tick and:
+
+1. **Advances the story through 6 chapters**, each with a goal, an intro line and unlocks:
+
+| # | Chapter | Goal | Unlocks |
+|---|---|---|---|
+| 1 | The Sprouting | 60 spirits · 5 guardians | the pond |
+| 2 | Iron Comes | Forge reaches 60 % once, then balance back above 0 | the Ironwright · embers on the eastern shore |
+| 3 | The Curse Awakens | **Boss**: heal 300 curse points (`!calm` `!pray` rain) to dissolve the Blightling | the Blightling · mist |
+| 4 | The Walking Hill | keep the balance green 8 min | Mossback · light shafts |
+| 5 | The Long Night | survive the Tall One ×2 · 30 Council votes | Ember-Eye · stars |
+| 6 | Balance | every people ≥ 20 % and curse < 10 % | the Wanderer · bloom |
+
+2. **Takes one move every 45–120 s** (aggressiveness slider in admin), chosen by utility scoring against the live state: call the rain, push blight, lean toward the weakest people (+12 % influence), let the Ironwright tempt the audience (×1.5 XP, +8 % Forge), make a character speak, send fireflies when the room is quiet, convene the Council, or ask for silence. Every move is logged ("Nature plays" panel on stream).
+
+3. **Gives voice to the cast** — original characters occupying Miyazaki-like roles: 🐢 **Mossback** (ancient tortoise-god carrying a grove, keeper of balance), 🐆 **Ember-Eye** (great grey lynx, matriarch of the Fang), ⚒️ **The Ironwright** (leader of the Forge, "we are not evil, we are hungry"), 🎭 **The Wanderer** (masked traveller, speaks for balance), 🩸 **The Blightling** (the curse made flesh), 🌑 **The Tall One** (never speaks). With an AI key they improvise in character; without, they use written lines. They walk the island as procedural low-poly figures with lanterns and glows.
+
+## 12c. Visual layer (v14)
+Bloom post-processing (UnrealBloom), drifting mist planes, a glowing pond with ripples at the island's heart, volumetric-looking light shafts, embers over the Forge shore, rain, the Tall One's passing — each unlocked by chapter progress so the island visibly grows richer as the audience plays.
 
 ## 13. Architecture
 

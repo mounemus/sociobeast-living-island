@@ -27,7 +27,7 @@ $initialStateJson = json_encode($state);
     <title><?= clean($creatureName) ?> — The Living Island</title>
     <meta name="description" content="A living AI creature that develops its own mythology, dreams, and memories. Watch it evolve.">
     <link rel="stylesheet" href="assets/style.css">
-    <link rel="stylesheet" href="assets/game.css?v=12">
+    <link rel="stylesheet" href="assets/game.css?v=14">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌲</text></svg>">
 </head>
 <body>
@@ -204,11 +204,16 @@ $initialStateJson = json_encode($state);
             return;
         }
         
-        loadGLTFLoader().then(function() {
+        function loadPostFX() {
+            var base = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
+            var files = ['shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'];
+            return files.reduce(function(pr, f) { return pr.then(function() { return new Promise(function(res) { var sc = document.createElement('script'); sc.src = base + f; sc.onload = res; sc.onerror = res; document.head.appendChild(sc); }); }); }, Promise.resolve());
+        }
+        loadGLTFLoader().then(loadPostFX).then(function() {
             window._loadLog('Loading visual engine...');
             
             // Load scripts in order
-            var scripts = ['assets/visualEngine.js?v=12', 'assets/speech.js', 'assets/ui.js', 'assets/app.js?v=12', 'assets/gameEngine.js?v=12'];
+            var scripts = ['assets/visualEngine.js?v=14', 'assets/speech.js', 'assets/ui.js', 'assets/app.js?v=14', 'assets/gameEngine.js?v=14'];
             var loaded = 0;
             
             function loadNext() {

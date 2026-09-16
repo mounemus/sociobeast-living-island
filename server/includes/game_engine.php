@@ -9,6 +9,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/memory_engine.php';
 require_once __DIR__ . '/state_engine.php';
+require_once __DIR__ . '/island_director.php';
 
 class GameEngine {
 
@@ -87,10 +88,10 @@ class GameEngine {
     // ═══════════════════════════════════════════════════════════════
     // SCHEMA
     // ═══════════════════════════════════════════════════════════════
+    private static $schemaDone = false;
     public static function ensureSchema(): void {
-        static $done = false;
-        if ($done) return;
-        $done = true;
+        if (self::$schemaDone) return;
+        self::$schemaDone = true;
         $db = Database::get();
         $db->exec("
             CREATE TABLE IF NOT EXISTS guardians (
@@ -225,6 +226,9 @@ class GameEngine {
         // keep queue small
         $db->exec("DELETE FROM world_event_queue WHERE id NOT IN (SELECT id FROM world_event_queue ORDER BY id DESC LIMIT 200)");
     }
+
+    public static function queueEventPublic(string $type, array $payload = []): void { self::ensureSchema(); self::queueEvent($type, $payload); }
+    public static function openCouncilPublic(array &$game): void { self::ensureSchema(); self::openCouncil($game, true); }
 
     public static function drainEvents(int $sinceId): array {
         $db = Database::get();
@@ -379,6 +383,7 @@ class GameEngine {
 
         [$guardian, $isNew] = self::touchGuardian($username, $display);
         $result['newGuardian'] = $isNew;
+        if (!empty($d['_bridge'])) { setConfig('bridge_last_ping', (string)time()); setConfig('bridge_last_event', $type . ' from ' . $username); }
 
         $game = self::getGame();
         self::tickInternal($game);
@@ -392,7 +397,7 @@ class GameEngine {
         $isCalm = $type === 'comment' && stripos(trim($d['text'] ?? ''), '!calm') === 0;
         if (!$isCalm) {
             $game['event_window_count'] += ($type === 'like') ? min($count, 5) : 1;
-            if ($game['event_window_count'] > 60) $game['chaos'] = min(100, (float)$game['chaos'] + 2);
+            if ($game['event_window_count'] > (int)getConfig('curse_spam_threshold', '60')) $game['chaos'] = min(100, (float)$game['chaos'] + 2);
         }
 
         $xp = 0; $energy = 0; $clanInfluence = 0;
@@ -494,6 +499,7 @@ class GameEngine {
 
         switch ($cmd) {
             case 'calm': case 'pray': case 'breathe':
+                self::metric($game, 'healed', min(5, (float)$game['chaos']));
                 $game['chaos'] = max(0, (float)$game['chaos'] - 5);
                 if ($game['chaos'] <= 0 && time() < (int)$game['fractured_until']) {
                     $game['fractured_until'] = 0;
@@ -596,7 +602,8 @@ class GameEngine {
             self::queueEvent('world_event', ['event' => $event, 'number' => $game['world_events']]);
             if ($event === 'prophecy') self::queueEvent('request_speech', ['mode' => 'prophecy']);
             if ($event === 'mother_tree') self::queueEvent('request_speech', ['mode' => 'mythology']);
-            if ($event === 'first_rain') { $game['chaos'] = max(0, (float)$game['chaos'] - 40); self::metric($game, 'rains'); }
+            if ($event === 'first_rain') { self::metric($game, 'healed', min(40, (float)$game['chaos'])); $game['chaos'] = max(0, (float)$game['chaos'] - 40); self::metric($game, 'rains'); }
+            if ($event === 'tall_one') self::metric($game, 'tall_one_events');
             if ($event === 'tall_one') self::queueEvent('request_speech', ['mode' => 'reactive', 'context' => 'The Tall One, the great night-walking spirit, is crossing the island. Speak in awe and silence.']);
             MemoryEngine::addEvent('world_event', "World event #{$game['world_events']}: $event", '');
         }
@@ -764,7 +771,7 @@ class GameEngine {
         }
 
         // The curse fades 3/min naturally; industry feeds it
-        $game['chaos'] = max(0, (float)$game['chaos'] - 3 * $dtMin);
+        $game['chaos'] = max(0, (float)$game['chaos'] - (float)getConfig('curse_decay_per_min', '3') * $dtMin);
         $forge = (float)(Database::get()->query("SELECT influence FROM clans WHERE key = 'forge'")->fetch()['influence'] ?? 0);
         if ($forge > 75) $game['chaos'] = min(100, (float)$game['chaos'] + 1.5 * $dtMin);
 
@@ -778,6 +785,9 @@ class GameEngine {
         $interval = (int)getConfig('council_interval_min', '8');
         self::closeCouncil($game);
         if ($now - (int)$game['last_council'] > $interval * 60) self::openCouncil($game);
+
+        // Nature plays (Island Director)
+        try { IslandDirector::tick($game, self::getClans(), $dtMin); } catch (Throwable $e) { error_log('[Director] ' . $e->getMessage()); }
     }
 
     public static function tick(): array {
@@ -787,6 +797,14 @@ class GameEngine {
         self::checkQuests($game);
         self::saveGame($game);
         return self::publicState();
+    }
+
+    public static function adjustCurse(float $delta): void { $g = self::getGame(); $g['chaos'] = max(0, min(100, (float)$g['chaos'] + $delta)); self::saveGame($g); }
+
+    public static function resetGame(): void {
+        $db = Database::get();
+        foreach (['guardians', 'clans', 'game_state', 'council_votes', 'lore_decisions', 'world_event_queue', 'land_fragments', 'seasons', 'director_state', 'character_state'] as $t) $db->exec("DROP TABLE IF EXISTS $t");
+        self::$schemaDone = false; IslandDirector::resetSchemaFlag(); self::ensureSchema(); IslandDirector::ensureSchema();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -849,6 +867,7 @@ class GameEngine {
             'quests' => json_decode($g['quests'] ?: '[]', true),
             'vote' => self::getOpenVote(),
             'leaderboard' => self::leaderboard(5),
+            'director' => IslandDirector::publicState(),
             'guardianCount' => (int)Database::get()->query("SELECT COUNT(*) c FROM guardians")->fetch()['c'],
             'lore' => Database::get()->query("SELECT question, decision FROM lore_decisions ORDER BY id DESC LIMIT 3")->fetchAll(),
         ];

@@ -55,6 +55,8 @@ async function flush() {
   }
 }
 setInterval(flush, FLUSH_MS);
+// heartbeat so the admin panel shows the bridge as connected even in quiet moments
+setInterval(function() { fetch(`${BASE_URL}/api/tiktok.php`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: SECRET, events: [], heartbeat: { username: USERNAME, demo: DEMO, queued: queue.length, ts: Date.now() } }) }).catch(function() {}); }, 30000);
 
 // ─── Normalisers ────────────────────────────────────────────────
 const user = d => ({

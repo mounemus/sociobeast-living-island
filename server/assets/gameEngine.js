@@ -54,6 +54,10 @@
       '  <div id="hud-clans"></div>' +
       '  <div id="hud-chaos"><div class="bar"><div id="hud-chaos-fill"></div><span>The Curse</span></div></div>' +
       '</div>' +
+      '<div id="hud-chapter"><div class="ch-top"><span id="hud-ch-num">Chapter 1</span><span id="hud-ch-title">The Sprouting</span></div><div id="hud-ch-goal"></div><div id="hud-ch-progress"></div></div>' +
+      '<div id="hud-boss" class="hidden"><span>🩸 The Blightling</span><div class="bar"><div id="hud-boss-fill"></div></div><span class="sub">heal it with <b>!calm</b> · <b>!pray</b> · rain</span></div>' +
+      '<div id="hud-nature"><div class="hq-title">🌿 Nature plays</div><div id="hud-nature-log"></div></div>' +
+      '<div id="hud-speech" class="hidden"></div>' +
       '<div id="hud-vote" class="hidden"></div>' +
       '<div id="hud-quests"></div>' +
       '<div id="hud-board"></div>' +
@@ -114,6 +118,19 @@
           return '<div class="v-opt"><b>!' + (i + 1) + '</b> ' + esc(o) + '<div class="vbar"><div style="width:' + (n / total * 100) + '%"></div></div><span>' + n + '</span></div>';
         }).join('');
     } else vb.classList.add('hidden');
+
+    // Chapter (level), boss, nature log
+    const dir = game.director;
+    if (dir) {
+      const ch = dir.chapter;
+      $('hud-ch-num').textContent = 'Chapter ' + ch.number + '/' + ch.total; $('hud-ch-title').textContent = ch.title; $('hud-ch-goal').textContent = ch.goal;
+      $('hud-ch-progress').innerHTML = Object.keys(ch.progress).map(function(k) { const pr = ch.progress[k]; const pct = Math.min(100, pr.value / pr.target * 100); return '<div class="chp"><span>' + k.replace(/_/g, ' ') + '</span><div class="qbar"><div style="width:' + pct + '%"></div></div><span>' + (Math.round(pr.value * 10) / 10) + '/' + pr.target + '</span></div>'; }).join('');
+      $('hud-boss').classList.toggle('hidden', !dir.boss.active);
+      if (dir.boss.active) $('hud-boss-fill').style.width = (dir.boss.hp / dir.boss.max * 100) + '%';
+      $('hud-nature-log').innerHTML = (dir.log || []).slice(-4).reverse().map(function(l) { return '<div>' + esc(l.line) + '</div>'; }).join('');
+      VE.applyUnlocks(ch.unlocks);
+      Object.keys(dir.cast || {}).forEach(function(k) { if (k !== 'tall_one') VE.showCharacter(k, !!dir.cast[k].present); });
+    }
 
     // Fracture overlay
     const fr = $('hud-fracture');
@@ -265,6 +282,39 @@
       case 'mass_xp': feed('🌿 Bloom: everyone +' + p.xp + ' XP'); break;
       case 'request_speech':
         if (window.SocioBeast) SocioBeast.requestSpeech(p.mode || 'monologue', { force: true, context: p.context || '' });
+        break;
+      case 'chapter':
+        banner('📖 <b>Chapter ' + p.number + ' — ' + esc(p.title) + '</b><div class="sub">' + esc(p.intro || p.goal) + '</div>', 12000, 'chapter');
+        VE.applyUnlocks(p.unlocks); VE.meteorRain(6, 0xffffff);
+        break;
+      case 'chapter_complete':
+        banner('🏁 <b>Chapter ' + p.chapter + ' complete</b> — ' + esc(p.title) + ' · ×1.5 XP for 3 min', 8000, 'quest');
+        VE.burst(0, 3, 0, 500, 0xffe08a, { spread: 20, speed: 3, up: 7, size: 0.3, life: 5 });
+        break;
+      case 'nature_move':
+        feed('🌿 <b>Nature</b> — ' + esc(p.line), 'nature');
+        break;
+      case 'nature_gift':
+        feed('🌿 Nature leans toward the <b>' + esc(p.clan) + '</b> (+' + p.amount + '% influence)', 'nature');
+        break;
+      case 'blight':
+        VE.bossPulse(p.strength || 0.5); skyOverride = true; VE.setSky(0x1a0508); setTimeout(function() { skyOverride = false; }, 6000);
+        feed('🩸 <b>The Blightling</b> stirs beneath the roots', 'gift');
+        break;
+      case 'boss_defeated':
+        banner('💧 <b>The Blightling dissolves into rain.</b> Hatred remembered how to be water.', 10000, 'heal');
+        VE.startRain(20); VE.showCharacter('blightling', false); VE.burst(0, 2, 0, 800, 0xbfe6ff, { spread: 25, speed: 2, up: 6, size: 0.25, life: 6 });
+        break;
+      case 'character_speak': {
+        const pos = VE.castSpeakFx(p.who);
+        const el = $('hud-speech'); el.innerHTML = '<span class="who" style="color:' + p.color + '">' + p.icon + ' ' + esc(p.name) + '</span>' + esc(p.line);
+        el.style.borderColor = p.color; el.classList.remove('hidden'); clearTimeout(el._t); el._t = setTimeout(function() { el.classList.add('hidden'); }, 9000);
+        if (window.SpeechSystem && SpeechSystem.speak) { try { SpeechSystem.speak(p.name + ' says: ' + p.line); } catch (e) {} }
+        break;
+      }
+      case 'silence':
+        banner('🤫 <b>Nature asks for silence.</b> ' + (p.seconds || 20) + ' seconds.', 5000, 'council');
+        $('game-hud').classList.add('quiet'); setTimeout(function() { $('game-hud').classList.remove('quiet'); }, (p.seconds || 20) * 1000);
         break;
       case 'season_end':
         banner('🏆 <b>Season ' + p.season + ' ends</b> — clan <b>' + p.winner + '</b> reshapes the island', 10000, 'season');

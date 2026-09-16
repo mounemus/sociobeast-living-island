@@ -24,6 +24,7 @@ if (!$demo && $secret !== '' && ($input['secret'] ?? '') !== $secret) {
 }
 
 $events = $input['events'] ?? (isset($input['type']) ? [$input] : []);
+if (isset($input['heartbeat'])) { setConfig('bridge_last_ping', (string)time()); setConfig('bridge_status', json_encode($input['heartbeat'])); }
 $results = [];
 $allowed = ['like', 'comment', 'gift', 'follow', 'share', 'join'];
 
@@ -31,6 +32,7 @@ foreach (array_slice($events, 0, 100) as $ev) {
     $type = $ev['type'] ?? '';
     if (!in_array($type, $allowed, true)) continue;
     try {
+        $ev['_bridge'] = true;
         $r = GameEngine::handleLiveEvent($type, $ev);
         unset($r['game']);
         $results[] = $r;

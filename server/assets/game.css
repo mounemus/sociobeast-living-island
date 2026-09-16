@@ -92,3 +92,22 @@
 #hud-balance .bar::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.35); }
 #hud-balance-fill { position: absolute; top: 0; bottom: 0; left: 50%; width: 0; transition: left .6s, width .6s; box-shadow: 0 0 10px currentColor; }
 #hud-balance .bar > span { font-size: 9px; }
+
+/* ═══ v14 — chapters, boss, nature, characters ═══ */
+#hud-chapter { position: absolute; top: 148px; left: 50%; transform: translateX(-50%); width: min(92vw, 560px); background: rgba(0,0,0,.5); border: 1px solid rgba(255,224,138,.35); border-radius: 12px; padding: 6px 12px; font-size: 12px; }
+#hud-chapter .ch-top { display: flex; justify-content: space-between; font-weight: 700; }
+#hud-chapter .ch-top span:first-child { color: #ffe08a; letter-spacing: 1px; text-transform: uppercase; font-size: 10px; }
+#hud-ch-goal { opacity: .8; font-style: italic; margin: 2px 0 4px; }
+.chp { display: grid; grid-template-columns: 90px 1fr auto; gap: 6px; align-items: center; font-size: 10px; margin: 2px 0; }
+#hud-boss { position: absolute; top: 240px; left: 50%; transform: translateX(-50%); width: min(80vw, 420px); background: rgba(40,0,10,.85); border: 2px solid #ff3050; border-radius: 14px; padding: 8px 14px; font-size: 13px; text-align: center; box-shadow: 0 0 30px rgba(255,48,80,.5); }
+#hud-boss .bar { height: 10px; margin: 4px 0; border-color: #ff3050; } #hud-boss-fill { background: linear-gradient(90deg, #6a0016, #ff3050); }
+#hud-boss .sub { font-size: 11px; opacity: .85; }
+#hud-nature { position: absolute; left: 12px; top: 40%; width: 260px; background: rgba(0,0,0,.5); border-radius: 12px; padding: 8px 10px; border: 1px solid rgba(127,214,127,.3); font-size: 11px; }
+#hud-nature-log div { margin: 3px 0; opacity: .9; border-left: 2px solid #7fd67f; padding-left: 6px; }
+.fitem.nature { border-color: #7fd67f; font-style: italic; }
+#hud-speech { position: absolute; top: 26%; left: 50%; transform: translateX(-50%); max-width: 80vw; background: rgba(8,12,10,.92); border: 2px solid #fff; border-radius: 16px 16px 16px 4px; padding: 10px 16px; font-size: 15px; font-family: Georgia, serif; font-style: italic; animation: pop .35s ease; }
+#hud-speech .who { display: block; font-style: normal; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+#hud-banner.chapter { border-color: #ffe08a; font-size: 20px; padding: 16px 30px; }
+#hud-banner .sub { display: block; font-size: 13px; opacity: .85; margin-top: 4px; font-style: italic; }
+#game-hud.quiet > *:not(#hud-banner) { opacity: .15; transition: opacity 1s; }
+@media (max-aspect-ratio: 3/4) { #hud-chapter { top: 190px; } #hud-boss { top: 300px; } #hud-nature { top: auto; bottom: 330px; width: 44vw; left: 8px; } }

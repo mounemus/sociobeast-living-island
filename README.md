@@ -1,9 +1,11 @@
-# 🌲 SocioBeast — The Living Island · v13 "Kodama Grove"
+# 🌲 SocioBeast — The Living Island · v14 "Nature Plays"
 
 > A floating island of ancient forest where **every TikTok Live viewer becomes a kodama**.
 > Four peoples — Grove, Forge, Fang, Veil — share the island; the audience tips the **balance between forest and iron**,
 > heals **the Curse** born of hatred, votes at the **Council** that writes the lore, and awakens World Events such as the passing of **the Tall One**.
-> Inspired by the moral universe of Hayao Miyazaki (no villains, nature as a character) with original names and assets.
+> **Nature is a player too**: an autonomous Island Director advances the story through 6 chapters (levels), sends rain and blight, helps the weakest people and gives voice to an original cast — Mossback the walking hill, Ember-Eye the great lynx, the Ironwright, the Wanderer, the Blightling. Inspired by the moral universe of Hayao Miyazaki (no villains, nature as a character) with original names and assets.
+>
+> Admin control room: `/admin/island.php` — chapters, Nature parameters, cast, curse controls and the **TikTok Live transmission panel** (bridge status, secret, OBS URL, test events).
 > Three.js + PHP/SQLite + a Node TikTok bridge. By [UbMaker](https://virlabdesign.com).
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mounemus/sociobeast-living-island)
