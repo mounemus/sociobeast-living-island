@@ -184,7 +184,7 @@
 
   function evolve(st) {
     S.stage = st; S.evolvedAt[st] = Date.now(); lastEvolveAt = Date.now(); const stage = STAGES[st];
-    Creature.setStage(st, true); Creature.burstSparks(300, 0xffffff, 6); Creature.burstHearts(24, true); Creature.punch(1);
+    Creature.setStage(st, true); Creature.burstSparks(160, 0xfff2b0, 5); Creature.burstHearts(18, true); Creature.punch(1);
     banner('✨ <b>' + S.name + '</b> evolved into <b>' + stage.name + '</b><span class="sub">' + esc(stage.intro) + '</span>', 'evolve', 9000);
     setTimeout(function() { speak('evolve', {}, 6000); Creature.spin(); Creature.dance(4); }, 1200);
     save();

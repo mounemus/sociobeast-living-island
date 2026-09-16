@@ -184,7 +184,7 @@
     const hs = new T.Shape(); hs.moveTo(0, 0.5); hs.bezierCurveTo(0, 0.5, -0.1, 0.9, -0.5, 0.9); hs.bezierCurveTo(-1.1, 0.9, -1.1, 0.2, -1.1, 0.2); hs.bezierCurveTo(-1.1, -0.2, -0.7, -0.6, 0, -1); hs.bezierCurveTo(0.7, -0.6, 1.1, -0.2, 1.1, 0.2); hs.bezierCurveTo(1.1, 0.2, 1.1, 0.9, 0.5, 0.9); hs.bezierCurveTo(0.1, 0.9, 0, 0.5, 0, 0.5);
     parts.heartGeo = new T.ExtrudeGeometry(hs, { depth: 0.25, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.05, bevelSegments: 2 }); parts.heartGeo.scale(0.14, 0.14, 0.14); parts.heartGeo.rotateZ(Math.PI);
     parts.heartMats = [0xff5f7a, 0xff8fa8, 0xffc1cf, 0xff3d5c].map(function(c) { return new T.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.5, transparent: true }); });
-    parts.sparkGeo = new T.OctahedronGeometry(0.06, 0);
+    parts.sparkGeo = new T.OctahedronGeometry(0.045, 0);
     parts.sparkMat = new T.MeshBasicMaterial({ color: 0xffe9a3, transparent: true });
   }
 
@@ -331,7 +331,7 @@
 
     // ── position (wander) & facing ──
     root.position.x = lerp(root.position.x, A.tx, k * 0.25); root.position.z = lerp(root.position.z, A.tz, k * 0.25);
-    A.spin = lerp(A.spin, A.spinT, k * 0.8);
+    A.spin = lerp(A.spin, A.spinT, 1 - Math.pow(0.0001, dt)); if (Math.abs(A.spinT - A.spin) < 0.02) A.spin = A.spinT; // finish the turn facing front
     const faceDir = Math.atan2(A.tx - root.position.x, A.tz - root.position.z);
     const moving = Math.hypot(A.tx - root.position.x, A.tz - root.position.z) > 0.08;
     parts.tilt.rotation.y = A.spin + (moving ? faceDir : 0) * 0.5;
