@@ -66,7 +66,7 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
     scene = new T.Scene(); camera = new T.PerspectiveCamera(36, 1, 0.1, 200); clock = new T.Clock(); dot = dotTexture();
-    buildRoom(); buildLights(); buildNest(); buildCreature(); buildParticles();
+    buildRoom(); buildLights(); buildNest(); buildCreature(); buildParticles(); buildEnvironment();
     resize(); addEventListener('resize', resize);
     if (T.EffectComposer && T.UnrealBloomPass) { composer = new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene, camera)); composer.addPass(new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.45, 0.7, 0.86)); }
     requestAnimationFrame(loop);
@@ -213,7 +213,7 @@
     A.stage = n; const L = STAGE_LOOK[Math.min(7, n)];
     A.growthT = L.s; if (!animate) A.growth = L.s;
     A.glow = L.glow; parts.egg.visible = n === 0; parts.beast.visible = n > 0;
-    loadModel(n); showModel(n); if (n < 7) loadModel(n + 1); // prefetch the next form
+    loadRig(n); loadModel(n); showModel(n); if (n < 7) { loadRig(n + 1); loadModel(n + 1); } // prefetch the next form
     if (animate) { A.stageGrow = 0; camPunch = 1; }
   }
 
@@ -239,10 +239,81 @@
     }, undefined, function() { models[n] = 'missing'; });
   }
   function showModel(n) {
-    Object.keys(models).forEach(function(k) { if (models[k] && models[k].obj) models[k].obj.visible = +k === n; });
-    const m = models[n] && models[n].obj ? models[n] : null;
+    const R = rigs[n] && rigs[n].obj ? rigs[n] : null;
+    Object.keys(rigs).forEach(function(k) { if (rigs[k] && rigs[k].obj) rigs[k].obj.visible = R && +k === n; });
+    Object.keys(models).forEach(function(k) { if (models[k] && models[k].obj) models[k].obj.visible = !R && +k === n; });
+    const m = R || (models[n] && models[n].obj ? models[n] : null);
     parts.beast.visible = !m && n > 0; parts.egg.visible = !m && n === 0;
-    A.usingModel = !!m;
+    A.usingModel = !!m; A.usingRig = !!R;
+  }
+
+
+  // ─────────────────────────────────────────────────────────────
+  // ENVIRONMENT UPGRADES — painted backdrop (assets/art/backdrop.png), the Meshy nest (assets/models/prop-nest.glb),
+  // ground mist, orbiting crystal shards. Each one is optional: missing file = procedural version stays.
+  // ─────────────────────────────────────────────────────────────
+  let mists = [], shards, nestModel = null;
+  function buildEnvironment() {
+    new T.TextureLoader().load('assets/art/backdrop.png', function(tex) {
+      tex.encoding = T.sRGBEncoding; tex.wrapS = T.RepeatWrapping; tex.repeat.x = -1; tex.offset.x = 1;
+      const arc = 2.3, r = 42, h = arc * r / 2.33;
+      const m = new T.Mesh(new T.CylinderGeometry(r, r, h, 48, 1, true, Math.PI - arc / 2, arc), new T.MeshBasicMaterial({ map: tex, side: T.DoubleSide, color: 0x9a94c4, fog: false, depthWrite: false }));
+      m.position.y = h * 0.28; m.renderOrder = -1; scene.add(m); parts.backdrop = m;
+    }, undefined, function() {});
+    if (T.GLTFLoader) new T.GLTFLoader().load('assets/models/prop-nest.glb', function(gltf) {
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.22; } });
+      const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3());
+      const sc = 4.7 / Math.max(size.x, size.z); obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
+      obj.position.set(-c.x, -box.max.y + 0.42, -c.z); // bowl rim just under the creature's feet
+      nestModel = new T.Group(); nestModel.add(obj); scene.add(nestModel);
+      nest.children.forEach(function(ch) { if (ch !== parts.runes) ch.visible = false; }); // procedural nest & table give way to the floating rock
+    }, undefined, function() {});
+    // mist: soft additive sheets drifting around the base
+    for (let i = 0; i < 6; i++) { const m = new T.Mesh(new T.PlaneGeometry(4, 1.6), new T.MeshBasicMaterial({ map: dot, color: i % 2 ? 0xffb3e6 : 0x9fe9ff, transparent: true, opacity: 0.16, blending: T.AdditiveBlending, depthWrite: false })); m.rotation.x = -Math.PI / 2 + 0.2; m.userData.a = i / 6 * Math.PI * 2; scene.add(m); mists.push(m); }
+    // shards: crystal fragments orbiting above the nest
+    shards = new T.Group(); scene.add(shards);
+    for (let i = 0; i < 9; i++) { const s = new T.Mesh(new T.OctahedronGeometry(0.07 + Math.random() * 0.08, 0), crystal(i % 3 ? CYAN : PINK)); s.userData = { a: Math.random() * Math.PI * 2, r: 2.6 + Math.random() * 1.4, y: 1.2 + Math.random() * 2.4, sp: 0.15 + Math.random() * 0.2 }; s.scale.y = 1.8; shards.add(s); }
+  }
+  function updateEnvironment(t, dt) {
+    if (nestModel) { nestModel.position.y = Math.sin(t * 0.45) * 0.06; nestModel.rotation.y = Math.sin(t * 0.08) * 0.03; nest.position.y = nestModel.position.y; root.position.y = nestModel.position.y; }
+    mists.forEach(function(m, i) { const a = m.userData.a + t * 0.05; m.position.set(Math.cos(a) * 2.4, 0.05 + Math.sin(t * 0.7 + i) * 0.05, Math.sin(a) * 2.4); m.rotation.z = a; m.material.opacity = 0.1 + Math.sin(t * 0.4 + i) * 0.05; });
+    if (shards) shards.children.forEach(function(s) { const u = s.userData; const a = u.a + t * u.sp; s.position.set(Math.cos(a) * u.r, u.y + Math.sin(t * 1.1 + u.a) * 0.15, Math.sin(a) * u.r); s.rotation.y = t * 0.8 + u.a; s.rotation.x = Math.sin(t * 0.5 + u.a) * 0.3; });
+    if (parts.backdrop) parts.backdrop.rotation.y = Math.sin(t * 0.02) * 0.02;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // RIGGED MODELS — form-NN-idle.glb (+ wave/dance/jump/cheer/look) from scripts/meshy-rig.mjs. When the idle clip
+  // exists it is preferred over the static form model; the other clips are fetched lazily and cross-faded.
+  // ─────────────────────────────────────────────────────────────
+  const rigs = {}; // stage → { obj, mixer, actions:{name:action}, current, clips:{name:'loading'|'missing'|clip} }
+  const CLIP_NAMES = ['wave', 'dance', 'jump', 'cheer', 'look'];
+  function rigUrl(n, clip) { return 'assets/models/form-' + String(MODEL_FORMS[n] || n + 1).padStart(2, '0') + '-' + clip + '.glb'; }
+  function loadRig(n) {
+    if (rigs[n] !== undefined || !T.GLTFLoader) return; rigs[n] = 'loading';
+    new T.GLTFLoader().load(rigUrl(n, 'idle'), function(gltf) {
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.frustumCulled = false; if (o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.28; } } });
+      // Skinned meshes render where the bones are (Meshy rigs: armature in cm, mesh geometry in m), so measure the skeleton, not the geometry
+      obj.updateMatrixWorld(true); const bb = new T.Box3(); const wp = new T.Vector3();
+      obj.traverse(function(o) { if (o.isBone) bb.expandByPoint(o.getWorldPosition(wp)); });
+      const bh = Math.max(0.001, bb.max.y - bb.min.y) * 1.22, sc = 2.9 / bh; // head bone sits below the top of the head
+      obj.scale.setScalar(sc); obj.updateMatrixWorld(true); const c = bb.getCenter(new T.Vector3());
+      obj.position.set(-c.x * sc, -(bb.min.y - bh * 0.04) * sc, -c.z * sc);
+      const g = new T.Group(); g.add(obj); g.visible = false; parts.tilt.add(g);
+      const mixer = new T.AnimationMixer(obj); const idle = gltf.animations[0] ? mixer.clipAction(gltf.animations[0]) : null; if (idle) idle.play();
+      rigs[n] = { obj: g, root: obj, mixer: mixer, actions: { idle: idle }, current: idle, clips: {} };
+      if (A.stage === n) showModel(n);
+    }, undefined, function() { rigs[n] = 'missing'; });
+  }
+  function playClip(name, seconds) {
+    const R = rigs[A.stage]; if (!R || typeof R === 'string') return false;
+    if (!R.actions[name]) {
+      if (R.clips[name] === undefined) { R.clips[name] = 'loading'; new T.GLTFLoader().load(rigUrl(A.stage, name), function(gltf) { const clip = gltf.animations[0]; if (!clip) { R.clips[name] = 'missing'; return; } R.clips[name] = clip; R.actions[name] = R.mixer.clipAction(clip, R.root); if (A.clipWanted === name) playClip(name, seconds); }, undefined, function() { R.clips[name] = 'missing'; }); }
+      A.clipWanted = name; return R.clips[name] !== 'missing';
+    }
+    const next = R.actions[name]; if (R.current === next) return true;
+    next.reset(); next.setLoop(T.LoopRepeat, Infinity); next.fadeIn(0.25).play(); if (R.current) R.current.fadeOut(0.25); R.current = next;
+    clearTimeout(A.clipTimer); A.clipTimer = setTimeout(function() { if (R.current === next && R.actions.idle) { R.actions.idle.reset().fadeIn(0.3).play(); next.fadeOut(0.3); R.current = R.actions.idle; } }, (seconds || 3) * 1000);
+    return true;
   }
 
   function partScale(obj, on, k, mult) { const t = on ? (mult || 1) : 0.001; obj.scale.x += (t * Math.sign(obj.scale.x || 1) - obj.scale.x) * k; obj.scale.y += (t - obj.scale.y) * k; obj.scale.z += (t - obj.scale.z) * k; }
@@ -266,21 +337,21 @@
   // ACTIONS
   // ─────────────────────────────────────────────────────────────
   function act(name, dur) { A.act = name; A.actT = 0; A.actDur = dur || 1.5; }
-  function hop(power) { if (A.grounded) { A.vy = 4.2 * (power || 1); A.grounded = false; } }
+  function hop(power) { if (A.usingRig && (power || 1) >= 0.8 && playClip('jump', 1.4)) return; if (A.grounded) { A.vy = 4.2 * (power || 1); A.grounded = false; } }
   function wander() { const a = Math.random() * Math.PI * 2, r = 0.2 + Math.random() * 0.6; A.tx = Math.cos(a) * r; A.tz = Math.sin(a) * r; act('wander', 3); }
-  function spin() { A.spinT += Math.PI * 2; hop(0.8); act('spin', 1.2); }
-  function dance(sec) { act('dance', sec || 4); }
-  function sing(sec) { act('sing', sec || 3.5); }
+  function spin() { if (!(A.usingRig && playClip('jump', 1.6))) { A.spinT += Math.PI * 2; hop(0.8); } act('spin', 1.2); }
+  function dance(sec) { if (A.usingRig) playClip('dance', sec || 4); act('dance', sec || 4); }
+  function sing(sec) { if (A.usingRig) playClip('cheer', sec || 3.5); act('sing', sec || 3.5); }
   function beg(sec) { A.tx = 0; A.tz = 0.3; act('beg', sec || 4); }
   function yawn() { act('yawn', 2.2); }
-  function wave(sec) { act('wave', sec || 2.5); }
+  function wave(sec) { if (A.usingRig) playClip('wave', sec || 2.5); act('wave', sec || 2.5); }
   function nom(sec) { act('nom', sec || 2); }
   function shiver(sec) { act('shiver', sec || 1.2); }
   function bow() { act('bow', 1.6); }
   function play() { A.tx = (Math.random() - .5) * 1.2; A.tz = (Math.random() - .5) * 0.8; act('play', 3.5); }
   function talk(sec) { A.talk = Math.max(A.talk, sec || 2); }
   function lookAtCamera(sec) { A.lookCam = sec || 3; }
-  function lookAround() { A.lookTarget.set((Math.random() - .5) * 1.6, (Math.random() - .5) * 0.8); }
+  function lookAround() { A.lookTarget.set((Math.random() - .5) * 1.6, (Math.random() - .5) * 0.8); if (A.usingRig && Math.random() < 0.4) playClip('look', 3); }
 
   // ─────────────────────────────────────────────────────────────
   // FX
@@ -352,7 +423,8 @@
     const breath = Math.sin(t * 2.4 * A.breathRate) * 0.022 * A.breathRate;
     const sx = 1 + A.squash * 0.6 - (A.vy > 0 ? A.vy * 0.03 : 0) + breath * 0.5, sy = 1 - A.squash + (A.vy > 0 ? A.vy * 0.05 : 0) + breath;
     const g = A.growth * (0.6 + 0.4 * A.stageGrow);
-    parts.rig.scale.set(sx * g, sy * g, sx * g); parts.rig.position.y = A.y;
+    if (A.usingRig) { parts.rig.scale.set(g * (1 + breath * 0.3), g * (1 + breath * 0.5), g * (1 + breath * 0.3)); } else parts.rig.scale.set(sx * g, sy * g, sx * g);
+    parts.rig.position.y = A.y;
 
     // position & facing
     root.position.x = lerp(root.position.x, A.tx, k * 0.25); root.position.z = lerp(root.position.z, A.tz, k * 0.25);
@@ -361,7 +433,8 @@
     const moving = Math.hypot(A.tx - root.position.x, A.tz - root.position.z) > 0.08;
     parts.tilt.rotation.y = A.spin + (moving ? clamp(faceDir, -0.6, 0.6) : 0) * 0.35;
     parts.tilt.rotation.x = A.face + (A.asleep ? 0.22 : 0) + (A.fading ? 0.3 : 0) + (A.dance ? Math.sin(t * 6) * 0.08 : 0);
-    parts.tilt.rotation.z = A.dance ? Math.sin(t * 6) * 0.18 : (moving ? Math.sin(t * 10) * 0.05 : 0);
+    parts.tilt.rotation.z = A.usingRig ? 0 : (A.dance ? Math.sin(t * 6) * 0.18 : (moving ? Math.sin(t * 10) * 0.05 : 0));
+    if (A.usingRig) parts.tilt.rotation.x = A.face * 0.5 + (A.asleep ? 0.12 : 0);
     parts.head.rotation.z = Math.sin(t * 1.3) * 0.04 + (A.mood === 'curious' ? Math.sin(t * 0.7) * 0.08 : 0) + (A.dance ? Math.sin(t * 6 + 1) * 0.12 : 0);
     parts.head.rotation.y = A.look.x * 0.18; parts.head.rotation.x = -A.look.y * 0.12 + (A.asleep ? 0.15 : 0);
     if (moving && A.grounded && !A.asleep && Math.random() < dt * 3) hop(0.35);
@@ -411,6 +484,8 @@
     parts.innerLight.intensity = lerp(parts.innerLight.intensity, Math.min(0.9, 0.2 + glow * 0.4), k); parts.innerLight.position.set(root.position.x, 1.4 * A.growth, root.position.z + 0.6);
     parts.innerLight.color.setHSL((t * 0.03) % 1, 0.7, 0.8);
 
+    Object.keys(rigs).forEach(function(k) { if (rigs[k] && rigs[k].mixer && rigs[k].obj.visible) rigs[k].mixer.update(dt); });
+    updateEnvironment(t, dt);
     // room
     const bp = bokeh.geometry.attributes.position; for (let i = 0; i < bp.count; i++) bp.setY(i, bp.getY(i) + Math.sin(t * 0.3 + i) * dt * 0.15); bp.needsUpdate = true;
     bokeh.material.opacity = 0.45 + Math.sin(t * 0.5) * 0.1;
@@ -442,5 +517,5 @@
   function ready() { return !!scene; }
   function project(x, y, z) { const v = new T.Vector3(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, visible: v.z < 1 }; }
   function cameraPos() { return camera.position; }
-  window.Creature = { init, ready, attach, project, models: models, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
+  window.Creature = { init, ready, attach, project, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
 })();

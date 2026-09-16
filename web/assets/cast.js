@@ -50,16 +50,32 @@
     chars.moss = { g: g, head: head, eyes: eyes, brows: brows, mouth: mouth, speaking: 0, nod: 0, blink: 0, nextBlink: 3, headY: 0.95, color: '#bfe8d8', bubble: 'bubble-moss' };
   }
 
+
+  // Meshy-textured bodies for the cast (assets/models/char-pip.glb / char-moss.glb). Procedural bodies stay if missing.
+  function loadCastModel(who, url, height, yaw) {
+    if (!THREE.GLTFLoader) return;
+    new T.GLTFLoader().load(url, function(gltf) {
+      const c = chars[who]; if (!c) return;
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material && o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = who === 'pip' ? 0.5 : 0.25; } });
+      const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), sc = height / Math.max(0.001, size.y);
+      obj.scale.setScalar(sc); box.setFromObject(obj); const ctr = box.getCenter(new T.Vector3());
+      obj.position.set(-ctr.x, who === 'pip' ? -ctr.y : -box.min.y, -ctr.z); obj.rotation.y = yaw || 0;
+      c.g.children.slice().forEach(function(ch) { if (ch !== c.glow) ch.visible = false; }); // hide the procedural body, keep Pip's glow
+      c.g.add(obj); c.model = obj; c.headY = who === 'pip' ? height * 0.7 : height * 1.05;
+    }, undefined, function() {});
+  }
+
   function update(dt, t) {
     const P = chars.pip, M = chars.moss; if (!P || !M) return;
     // Pip: hovers in a figure-eight around home, comes forward when speaking, spirals when excited
     P.speaking = Math.max(0, P.speaking - dt); P.excite = Math.max(0, P.excite - dt);
     const k = 1 - Math.pow(0.02, dt);
-    const portrait = innerHeight > innerWidth; P.home.x = portrait ? -1.7 : -2.4; M.g.position.x = portrait ? 1.8 : 2.45; M.g.position.z = portrait ? 1.1 : 0.7;
+    const portrait = innerHeight > innerWidth; P.home.x = portrait ? -1.7 : -2.4; M.g.position.x = portrait ? 2.1 : 2.9; M.g.position.z = portrait ? 1.6 : 1.3;
     const target = P.speaking > 0 ? new T.Vector3(portrait ? -1.1 : -1.5, 2.5, 1.9) : P.home.clone().add(new T.Vector3(Math.sin(t * 0.7) * 0.5, Math.sin(t * 1.9) * 0.25, Math.cos(t * 0.5) * 0.4));
     if (P.excite > 0) { target.x += Math.cos(t * 6) * 0.9; target.y += Math.sin(t * 6) * 0.5; }
     P.g.position.lerp(target, k * 0.6);
     P.wings.forEach(function(w, i) { const side = i === 0 ? -1 : 1; w.rotation.y = side * (0.9 + Math.sin(t * 22) * 0.5); });
+    if (P.model) { P.model.rotation.z = Math.sin(t * 3) * 0.08 + (P.speaking > 0 ? Math.sin(t * 9) * 0.06 : 0); P.model.rotation.x = Math.sin(t * 2.1) * 0.06; P.model.rotation.y = 0.35 + Math.sin(t * 0.8) * 0.25 + (P.speaking > 0 ? -0.3 : 0); P.model.position.y = Math.sin(t * 4) * 0.03; }
     P.core.material.emissiveIntensity = 1.4 + Math.sin(t * 5) * 0.3 + (P.speaking > 0 ? 0.6 : 0);
     P.glow.scale.setScalar(1 + Math.sin(t * 4) * 0.08 + (P.speaking > 0 ? 0.25 : 0));
     for (let i = P.trail.length - 1; i >= 0; i--) { const prev = i === 0 ? P.g.position : P.trail[i - 1].position; P.trail[i].position.lerp(prev, k * (1.2 - i * 0.05)); }
@@ -73,6 +89,7 @@
     M.head.rotation.y = Math.sin(t * 0.3) * 0.25;
     M.mouth.scale.set(1, M.speaking > 0 ? 1 + Math.abs(Math.sin(t * 10)) * 0.8 : 1, 1);
     M.brows.forEach(function(b, i) { b.position.y = 0.12 + (M.speaking > 0 ? 0.02 : 0); });
+    if (M.model) { M.model.rotation.x = (M.speaking > 0 ? Math.sin(t * 5) * 0.05 : Math.sin(t * 0.6) * 0.02); M.model.rotation.y = -0.2 + Math.sin(t * 0.25) * 0.15 + (M.speaking > 0 ? 0.25 : 0); M.model.scale.y = M.model.scale.x * (1 + Math.sin(t * 0.9) * 0.02); }
     // bubbles follow their speaker
     ['pip', 'moss'].forEach(function(who) { const c = chars[who], el = $(c.bubble); if (!el || el.classList.contains('hidden')) return; const p = Creature.project(c.g.position.x, c.g.position.y + c.headY, c.g.position.z); const top = ($('top') ? $('top').offsetHeight : 120) + 24 + el.offsetHeight; el.style.transform = 'translate(-50%, -100%) translate(' + clamp(p.x, 190, innerWidth - 190) + 'px,' + clamp(p.y, top, innerHeight - 150) + 'px)'; });
   }
@@ -89,6 +106,7 @@
 
   ready(function() {
     buildPip(); buildMoss(); built = true;
+    loadCastModel('pip', 'assets/models/char-pip.glb', 0.62, 0.35); loadCastModel('moss', 'assets/models/char-moss.glb', 0.95, -0.2);
     let last = performance.now();
     (function tick(now) { requestAnimationFrame(tick); const dt = Math.min(0.05, (now - last) / 1000); last = now; clockT += dt; update(dt, clockT); })(last);
   });

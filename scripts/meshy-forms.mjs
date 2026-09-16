@@ -20,8 +20,10 @@ if (!KEY) { console.error('Set MESHY_API_KEY (https://www.meshy.ai → API keys)
 mkdirSync(OUT, { recursive: true });
 
 const only = process.argv.slice(2);
-const forms = readdirSync(ART).filter(f => /^form-\d\d-.*\.png$/.test(f)).sort()
-  .filter(f => !only.length || only.includes(f.slice(5, 7)));
+// form-NN-*.png are the creature forms; any other name (char-pip.png, prop-nest.png…) converts to models/<name>.glb
+const forms = readdirSync(ART).filter(f => /\.png$/.test(f)).sort()
+  .filter(f => only.length ? only.some(o => f.startsWith('form-' + o + '-') || f === o + '.png' || f.startsWith(o)) : /^form-\d\d-/.test(f));
+const outName = f => /^form-\d\d-/.test(f) ? `form-${f.slice(5, 7)}.glb` : f.replace(/\.png$/, '.glb');
 
 const api = async (path, init) => {
   const r = await fetch('https://api.meshy.ai' + path, { ...init, headers: { Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', ...(init?.headers || {}) } });
@@ -32,7 +34,7 @@ const api = async (path, init) => {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 for (const f of forms) {
-  const nn = f.slice(5, 7), out = resolve(OUT, `form-${nn}.glb`);
+  const nn = f.slice(5, 7), out = resolve(OUT, outName(f));
   if (existsSync(out) && !process.env.FORCE) { console.log(`form-${nn}: model exists, skip`); continue; }
   const dataUri = 'data:image/png;base64,' + readFileSync(resolve(ART, f)).toString('base64');
   console.log(`form-${nn}: creating task from ${f}…`);
@@ -51,6 +53,7 @@ for (const f of forms) {
   if (task.status !== 'SUCCEEDED') { console.error(`form-${nn}: ${task.status} ${task.task_error?.message || ''}`); continue; }
   const glb = await fetch(task.model_urls.glb).then(r => r.arrayBuffer());
   writeFileSync(out, Buffer.from(glb));
+  try { const mp = resolve(OUT, 'meshy-tasks.json'); const m = existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : {}; m[outName(f).replace(/\.glb$/, '')] = id; writeFileSync(mp, JSON.stringify(m, null, 1)); } catch (e) {}
   console.log(`form-${nn}: saved ${out} (${Math.round(glb.byteLength / 1024)} KB)`);
 }
 console.log('done — commit web/assets/models and push; the game picks the models up per form.');
