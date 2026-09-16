@@ -3,172 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SocioBeast — The Living Island</title>
-    <meta name="description" content="A living AI creature that develops its own mythology, dreams, and memories. Watch it evolve.">
+    <title>SocioBeast — a creature raised by TikTok Live</title>
+    <meta name="description" content="SocioBeast is a living 3D creature raised by a TikTok Live audience: likes feed it, comments make it talk, gifts make it evolve. By UbMaker.">
+    <meta property="og:title" content="SocioBeast — a creature raised by TikTok Live">
+    <meta property="og:description" content="Feed it with ❤️, talk to it in the chat, evolve it with gifts. It gets hungry, sleeps, remembers its keepers and acts on its own.">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
-    <link rel="stylesheet" href="assets/style.css">
-    <meta name="description" content="SocioBeast — The Living Island. A cosmic floating island where every TikTok viewer becomes a guardian spirit. Browser demo.">
-    <meta property="og:title" content="SocioBeast — The Living Island">
-    <meta property="og:description" content="1000+ AI spirits, 4 clans, council votes, fractures. Interactive TikTok Live game by UbMaker.">
-    <link rel="stylesheet" href="assets/game.css?v=16">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌲</text></svg>">
+    <link rel="stylesheet" href="assets/beast.css?v=20">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
 </head>
 <body>
-    <canvas id="creature-canvas"></canvas>
+    <canvas id="scene"></canvas>
+    <div id="load">Waking the beast…</div>
 
-    <div id="audio-hint">🔊 Click anywhere to awaken the forest</div>
-    <div id="load-status">Awakening spirits...</div>
-
-    <div id="creature-expression">
-        <div id="expression-inner">
-            <div class="expr-header">
-                <div class="expr-indicator"></div>
-                <span class="expr-label" id="expr-mode">Thinking</span>
-                <span class="expr-mood" id="expr-mood">😌 curious</span>
-            </div>
-            <div class="expr-body">
-                <div id="expression-text"></div>
+    <div id="hud">
+        <div id="top">
+            <div id="h-title" class="row"><span><span id="h-name">SocioBeast</span><span id="h-stage">Egg</span></span><span class="r"><span id="h-mood"></span><span id="h-keepers">0 keepers</span><span id="h-live">Demo</span></span></div>
+            <div><div class="bar"><div id="h-xp"></div></div><div id="h-xp-txt" class="num"></div></div>
+            <div id="h-vitals" class="panel">
+                <div class="vital" id="v-food"><div class="row"><span>❤️ Food</span><span>likes</span></div><div class="bar"><div id="h-food"></div></div></div>
+                <div class="vital" id="v-joy"><div class="row"><span>💬 Joy</span><span>comments</span></div><div class="bar"><div id="h-joy"></div></div></div>
+                <div class="vital" id="v-energy"><div class="row"><span>⚡ Energy</span><span>sleep · gifts</span></div><div class="bar"><div id="h-energy"></div></div></div>
             </div>
         </div>
+        <div id="bubble" class="hidden"></div>
+        <div id="keepers" class="panel"></div>
+        <div id="feed"></div>
+        <div id="banner" class="hidden"></div>
+        <div id="cta"></div>
+        <div id="help"><span>? keys</span><div class="keys"><kbd>H</kbd>hide HUD<br><kbd>L</kbd>25 likes<br><kbd>G</kbd>Galaxy gift<br><kbd>E</kbd>force evolution<br><kbd>V</kbd>voice on/off<br><kbd>R</kbd>reset to egg</div></div>
     </div>
 
-    <div id="debug-panel" class="hidden">
-        <div class="debug-header">
-            <span>🔧 Debug</span>
-            <button onclick="toggleDebug()">✕</button>
-        </div>
-        <div id="debug-content"></div>
-        <div class="debug-controls">
-            <button onclick="adminSpeak('monologue')" title="Monologue">💭</button>
-            <button onclick="adminSpeak('prophecy')" title="Prophecy">🔮</button>
-            <button onclick="adminSpeak('autonomous')" title="Thought">🤖</button>
-            <button onclick="generateDream()" title="Dream">💤</button>
-            <button onclick="generateMythology()" title="New Legend">📜</button>
-            <button onclick="toggleVoice()" title="Voice">🔊</button>
-        </div>
-        <div id="debug-status"></div>
-    </div>
-
-    <script src="mock-api.js?v=1"></script>
     <script>
-        // Configuration
-        window.SOCIOBEAST_CONFIG = {
-            voiceEnabled: true,
-            subtitlesEnabled: true,
-            demoMode: true,
-            mythologyEnabled: true,
-            streamingEnabled: false,
-            creatureName: "SocioBeast",
-            autonomyTickMs: 30000,
-            apiBase: ''
-        };
-
-        // Initial state for visual restoration
-        window.INITIAL_STATE = null;
-
-        // Loading logger
-        window._loadLog = function(msg) {
-            var el = document.getElementById('load-status');
-            if (el) el.textContent = msg;
-            console.log('[LOAD] ' + msg);
-        };
-
-        // Hide audio hint on click
-        document.addEventListener('click', function() {
-            var hint = document.getElementById('audio-hint');
-            if (hint) hint.classList.add('hidden');
-        }, { once: true });
-    </script>
-
-    <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-            onerror="window._loadLog('ERROR: Three.js failed to load')"></script>
-
-    <!-- Verify THREE -->
-    <script>
-    if (typeof THREE === 'undefined') {
-        window._loadLog('THREE not loaded! Trying backup...');
-        var s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
-        s.onerror = function() { window._loadLog('FATAL: Cannot load Three.js'); };
-        document.head.appendChild(s);
-    } else {
-        window._loadLog('THREE r' + THREE.REVISION + ' ready');
-    }
-    </script>
-
-    <!-- GLTFLoader -->
-    <script>
-    function loadGLTFLoader() {
-        return new Promise(function(resolve, reject) {
-            if (typeof THREE === 'undefined') { reject('THREE missing'); return; }
-            if (typeof THREE.GLTFLoader !== 'undefined') { resolve(); return; }
-
-            var urls = [
-                'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js',
-                'https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js'
-            ];
-
-            function tryNext(idx) {
-                if (idx >= urls.length) { reject('GLTFLoader failed'); return; }
-                window._loadLog('Loading GLTFLoader...');
-                var s = document.createElement('script');
-                s.src = urls[idx];
-                s.onload = function() {
-                    if (typeof THREE.GLTFLoader !== 'undefined') {
-                        window._loadLog('GLTFLoader ready');
-                        resolve();
-                    } else {
-                        tryNext(idx + 1);
-                    }
-                };
-                s.onerror = function() { tryNext(idx + 1); };
-                document.head.appendChild(s);
-            }
-            tryNext(0);
-        });
-    }
-
-    function bootApp() {
-        if (typeof THREE === 'undefined') {
-            window._loadLog('Waiting for THREE...');
-            setTimeout(bootApp, 200);
-            return;
-        }
-        
-        function loadPostFX() {
-            var base = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
-            var files = ['shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'];
-            return files.reduce(function(pr, f) { return pr.then(function() { return new Promise(function(res) { var sc = document.createElement('script'); sc.src = base + f; sc.onload = res; sc.onerror = res; document.head.appendChild(sc); }); }); }, Promise.resolve());
-        }
-        loadGLTFLoader().then(loadPostFX).then(function() {
-            window._loadLog('Loading visual engine...');
-            
-            // Load scripts in order
-            var scripts = ['assets/visualEngine.js?v=14', 'assets/speech.js', 'assets/ui.js', 'assets/app.js?v=14', 'assets/gameEngine.js?v=16'];
-            var loaded = 0;
-            
-            function loadNext() {
-                if (loaded >= scripts.length) return;
-                var s = document.createElement('script');
-                s.src = scripts[loaded];
-                s.onload = function() {
-                    loaded++;
-                    if (loaded < scripts.length) {
-                        setTimeout(loadNext, 50);
-                    }
-                };
-                s.onerror = function() { window._loadLog('ERROR: ' + scripts[loaded] + ' failed'); };
-                document.body.appendChild(s);
-            }
-            loadNext();
-        }).catch(function(err) {
-            window._loadLog('ERROR: ' + err);
-        });
-    }
-
-    bootApp();
+        // mode=live is set by the PHP page; the static page is the demo (?live=1 also works behind the PHP relay)
+        var q = new URLSearchParams(location.search);
+        window.BEAST_CONFIG = window.BEAST_CONFIG || { mode: q.get('live') === '1' ? 'live' : 'demo', voice: q.get('voice') === '1', ai: q.get('ai') !== '0', name: q.get('name') || 'SocioBeast' };
+        function loadScript(src) { return new Promise(function(res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function() { rej(src); }; document.head.appendChild(s); }); }
+        function loadSeq(list) { return list.reduce(function(p, f) { return p.then(function() { return loadScript(f); }); }, Promise.resolve()); }
+        var fx = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
+        loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
+          .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
+          .then(function() { return loadSeq(['shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
+          .then(function() { return loadSeq(['assets/creature.js?v=20', 'assets/game.js?v=20', 'assets/audience.js?v=20']); })
+          .then(function() { document.getElementById('load').classList.add('hidden'); })
+          .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>
 </body>
 </html>

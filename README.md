@@ -1,79 +1,65 @@
-# 🌲 SocioBeast — The Living Island · v14 "Nature Plays"
+# SocioBeast
 
-> A floating island of ancient forest where **every TikTok Live viewer becomes a kodama**.
-> Four peoples — Grove, Forge, Fang, Veil — share the island; the audience tips the **balance between forest and iron**,
-> heals **the Curse** born of hatred, votes at the **Council** that writes the lore, and awakens World Events such as the passing of **the Tall One**.
-> **Nature is a player too**: an autonomous Island Director advances the story through 6 chapters (levels), sends rain and blight, helps the weakest people and gives voice to an original cast — Mossback the walking hill, Ember-Eye the great lynx, the Ironwright, the Wanderer, the Blightling. Inspired by the moral universe of Hayao Miyazaki (no villains, nature as a character) with original names and assets.
->
-> Admin control room: `/admin/island.php` — chapters, Nature parameters, cast, curse controls and the **TikTok Live transmission panel** (bridge status, secret, OBS URL, test events).
-> Three.js + PHP/SQLite + a Node TikTok bridge. By [UbMaker](https://virlabdesign.com).
+A living 3D creature raised by a TikTok Live audience.
 
-![SocioBeast — The Living Island](server/assets/art/keyart.jpg)
+Likes feed it. Comments make it talk back. Gifts make it grow through six forms, from egg to cosmic beast. It gets hungry, falls asleep, gets bored when nobody is around, remembers the people who feed it, and does things on its own between two interactions. Think tamagotchi, except the whole chat is the parent and the pet has a voice.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/mounemus/sociobeast-living-island)
+**Demo (simulated audience):** https://sociobeast-living-island.vercel.app/
 
-📖 Full concept: [GAME-DESIGN.md](GAME-DESIGN.md)
+## How it works
 
----
+```
+TikTok LIVE ──► bridge/tiktok-bridge.js ──► web/api/tiktok.php ──► web/index.php (OBS browser source)
+                (Node, tiktok-live-connector)   (PHP relay, SQLite)      creature.js · game.js · audience.js
+                                                                          └─► web/api/think.php (LLM voice, optional)
+```
 
-## Two ways to run it
+The game itself runs in one browser tab, the OBS source. It is the authority: vitals, evolution, keepers, memory, all in `localStorage`. The server only relays raw TikTok events and lends the creature a voice through an LLM.
 
-| | **Browser demo** (`web/`) | **Full TikTok Live stack** (`server/` + `bridge/`) |
-|---|---|---|
-| Hosting | **Vercel** (static, free) | Any PHP 8 + SQLite host (VPS, shared hosting) |
-| Backend | `mock-api.js` — the game engine runs in the browser, saved in `localStorage` | `includes/game_engine.php` — persistent SQLite, AI speech (OpenAI / Anthropic) |
-| Audience | Simulated (`?demo=1`) | Real TikTok LIVE via `bridge/tiktok-bridge.js` |
-| Purpose | Showcase, portfolio, playtesting the rules | Actual streaming |
+| Folder | What |
+|---|---|
+| `web/` | The game. `index.html` is the static demo, `index.php` the live page. No build step. |
+| `web/assets/creature.js` | Procedural Three.js creature: body, face, horns, arms, tail, wings, halo, nest, sky, effects. |
+| `web/assets/game.js` | Rules: vitals, moods, evolution, keepers, the creature's own behaviour, HUD, persistence. |
+| `web/assets/audience.js` | Event source: simulated crowd (demo) or the PHP relay (live). |
+| `web/api/` | `tiktok.php` relay, `think.php` LLM voice, `config.php`. |
+| `api/think.js` | Same voice as a Vercel function, for the demo (`ANTHROPIC_API_KEY` in the project env). |
+| `bridge/` | Node bridge from TikTok Live to the relay. |
 
-Vercel's serverless filesystem is read-only, so the persistent PHP/SQLite backend cannot run there — that's why the repo ships both.
+## Run it
 
----
-
-## 🎮 Play it now
-Live demo: **https://sociobeast-living-island.vercel.app/?demo=1** (Vercel) · single-file mirror: https://claude.ai/artifact/HRPHSYaWeRc6SD1q1mnn3y — `bash scripts/build-standalone.sh` rebuilds it (`web/dist/sociobeast-standalone.html`, ~1 MB, model inlined).
-
-## 🚀 Deploy the demo on Vercel
+Demo, no server:
 
 ```bash
-npm i -g vercel
-vercel            # first deploy — keep the defaults
-vercel --prod     # production
-```
-Or import the GitHub repo in the Vercel dashboard — `vercel.json` already defines the build
-(`scripts/build-web.sh` → `web/dist`). Open `https://<project>.vercel.app/?demo=1`.
-
-Keys: **H** hide HUD · **G** test Great Howl gift · **R** rain · **T** thought · **S/C** shy/curious · drag / scroll to navigate.
-Console: `SocioMock.reset()` wipes the local save, `SocioMock.endSeason()` closes a season.
-
----
-
-## 📡 Run the real thing (TikTok Live)
-
-1. Upload `server/` to your PHP host (e.g. `/live/`). Make `server/data/` writable.
-2. Open `/admin/` (initial password `admin123`) → set an AI key, generate the **Bridge Secret**.
-3. Bridge:
-   ```bash
-   cd bridge && npm install && cp .env.example .env   # fill TIKTOK_USERNAME, SOCIOBEAST_URL, BRIDGE_SECRET
-   npm start          # real live   |   npm run demo → simulated audience
-   ```
-4. OBS → Browser source `https://your-host/live/?hud=1` at **1080×1920**.
-
-Chat commands: `!clan <grove|forge|fang|veil>` `!me` `!top` `!quest` `!lore` `!calm !pray !breathe` `!1 !2 !3` `!summon` `!decree` `!dance !feed !hide !seek !rain`
-
----
-
-## 🗂 Repo layout
-
-```
-server/    PHP app — index.php, api/ (state, event, speak, game, tiktok), includes/ (game_engine, ai_engine…), admin/, assets/
-bridge/    Node bridge: TikTok LIVE → api/tiktok.php  (tiktok-live-connector)
-web/       Static demo for Vercel: index.html + mock-api.js (assets copied from server/ at build)
-scripts/   build-web.sh (Vercel static) · build-standalone.sh (one-file HTML)
-.github/   CI: PHP + JS lint, engine smoke test, builds
+bash scripts/build-web.sh && python3 -m http.server -d web/dist 8769
 ```
 
-## Roadmap
-v12.1 permanent land fragments & seasonal biomes · v12.2 TTS voice of the Beast + shareable guardian cards · v12.3 YouTube/Twitch bridges · v13 skin marketplace.
+Live, on any PHP 8 host with SQLite and curl:
+
+```bash
+php -S 127.0.0.1:8090 -t web          # or point your web root at web/
+cp web/api/config.local.php.example web/api/config.local.php   # bridge secret + API key
+cd bridge && npm install && npm start  # after filling bridge/.env
+```
+
+OBS: browser source on `https://your-host/index.php` at 1080×1920. Add `?voice=1` for text-to-speech, `?name=Momo` to rename the creature.
+
+Keys on the page: `H` hide HUD · `L` 25 likes · `G` Galaxy gift · `E` force evolution · `V` voice · `R` reset to egg.
+
+## Rules in one table
+
+| Viewer does | Creature gets |
+|---|---|
+| ❤️ like | +0.5 food, +1 XP, hearts. 10+ at once: a hop. 20 wake it up when asleep. |
+| 💬 comment | +4 joy, +3 XP. `dance`, `sing`, `spin`, `play`, `sleep`, `hi` are understood. Questions get an answer. |
+| 🎁 gift | +10 food, +20 joy, 3 XP per coin. 50+ coins: a dance. 500+: fireworks. |
+| ➕ follow | +25 XP, the viewer becomes a keeper. |
+| 🔗 share | +30 XP. |
+
+Forms: Egg 0 · Hatchling 150 · Sprout 400 · Young Beast 2000 · Guardian 8000 · Cosmic Beast 25000 XP, at most one evolution per minute.
+
+Food drains in about seven minutes, joy in twelve, energy in fifteen. At zero food the creature fades until someone feeds it. At zero energy it sleeps.
 
 ## License
-MIT
+
+MIT. Made by Abdel-Mounem Taouai, UbMaker, Montréal.

@@ -1,8 +1,8 @@
 /**
- * SOCIOBEAST GENESIS v12 — TikTok Live Bridge
+ * SOCIOBEAST — TikTok Live Bridge
  * ─────────────────────────────────────────────────────────────
  * Connects to a TikTok LIVE via tiktok-live-connector, normalises
- * every interaction and pushes batches to  <SOCIOBEAST_URL>/api/tiktok.php
+ * every interaction and pushes batches to  <SOCIOBEAST_URL>/api/tiktok.php  (web/api/tiktok.php)
  *
  *   npm install
  *   cp .env.example .env   (fill it)
@@ -15,7 +15,7 @@ import 'dotenv/config';
 import { WebcastPushConnection } from 'tiktok-live-connector';
 
 const USERNAME   = process.env.TIKTOK_USERNAME || '';
-const BASE_URL   = (process.env.SOCIOBEAST_URL || 'http://localhost/live').replace(/\/$/, '');
+const BASE_URL   = (process.env.SOCIOBEAST_URL || 'http://localhost:8090').replace(/\/$/, '');
 const SECRET     = process.env.BRIDGE_SECRET || '';
 const FLUSH_MS   = parseInt(process.env.FLUSH_MS || '800', 10);
 const DEMO       = process.argv.includes('--demo');

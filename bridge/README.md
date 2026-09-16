@@ -8,11 +8,10 @@ npm start               # real TikTok LIVE
 npm run demo            # simulated audience (no TikTok needed)
 ```
 
-`BRIDGE_SECRET` must match the *TikTok bridge secret* in `/admin/config.php`.
+`BRIDGE_SECRET` must match `bridge_secret` in `web/api/config.local.php`.
 
 ## OBS
-Browser source → `https://your-site/live/?hud=1` at **1080×1920** (TikTok portrait).
-The HUD is designed for vertical; `?hud=0` hides it for a "cinema" shot.
+Browser source on `https://your-host/index.php` at **1080×1920** (TikTok portrait). `?voice=1` adds text-to-speech.
 
 ## Keep it running (VPS)
 ```

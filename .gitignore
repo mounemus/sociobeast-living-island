@@ -1,6 +1,6 @@
 # runtime data
-server/data/*.db
-server/data/*.db-*
+web/api/data/
+web/api/config.local.php
 # node
 bridge/node_modules/
 bridge/.env
