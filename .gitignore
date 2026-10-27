@@ -1,9 +1,8 @@
 # runtime data
-web/api/data/
-web/api/config.local.php
+server/config.json
+server/data/
 # node
-bridge/node_modules/
-bridge/.env
+server/node_modules/
 # build output
 web/dist/
 # misc

@@ -38,7 +38,7 @@
     </div>
 
     <script>
-        // mode=live is set by the PHP page; the static page is the demo (?live=1 also works behind the PHP relay)
+        // mode=live is injected by the home server (server/server.js); the static page is the demo
         var q = new URLSearchParams(location.search);
         window.BEAST_CONFIG = window.BEAST_CONFIG || { mode: q.get('live') === '1' ? 'live' : 'demo', voice: q.get('voice') === '1', ai: q.get('ai') !== '0', name: q.get('name') || 'SocioBeast' };
         function loadScript(src) { return new Promise(function(res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function() { rej(src); }; document.head.appendChild(s); }); }
@@ -47,7 +47,8 @@
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
-          .then(function() { return loadSeq(['assets/creature.js?v=21', 'assets/cast.js?v=21', 'assets/game.js?v=21', 'assets/director.js?v=21', 'assets/audience.js?v=21']); })
+          .then(function() { return window.BEAST_CONFIG.mode === 'live' ? fetch('api/state').then(function(r) { return r.json(); }).then(function(s) { window.BEAST_STATE = s || null; }).catch(function() {}) : null; })
+          .then(function() { return loadSeq(['assets/creature.js?v=22', 'assets/cast.js?v=22', 'assets/game.js?v=22', 'assets/director.js?v=22', 'assets/audience.js?v=22']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>

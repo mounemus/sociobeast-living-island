@@ -9,7 +9,7 @@
 (function() {
   'use strict';
   const C = window.BEAST_CONFIG || {};
-  const LIVE = C.mode === 'live', THINK_URL = LIVE ? 'api/think.php' : 'api/think';
+  const LIVE = C.mode === 'live', THINK_URL = 'api/think';
   const $ = function(id) { return document.getElementById(id); };
   const pick = function(a) { return a[Math.floor(Math.random() * a.length)]; };
   const esc = function(s) { return String(s || '').replace(/[&<>"]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };

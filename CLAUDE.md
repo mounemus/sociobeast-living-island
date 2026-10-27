@@ -11,7 +11,7 @@ game (clans, council, 1000 kodama, painted sprites) which the owner rejected as 
 
 ## Layout
 ```
-web/index.html            the page (static = demo). index.php = same page in live mode on a PHP host (OBS browser source)
+web/index.html            the page (static = demo). Served by server/server.js in live mode (BEAST_CONFIG injected, save preloaded)
 web/assets/creature.js    procedural Three.js r128 creature + nest + sky + FX. Public API window.Creature (setStage, setMood,
                           setVitals, hop/dance/sing/beg/…, burstHearts, burstSparks, headScreenPos). All motion from the A state.
 web/assets/game.js        rules (STAGES, RATE, GAIN), moods, scripted LINES, keepers, handle(event), director(), HUD, localStorage.
@@ -19,12 +19,14 @@ web/assets/game.js        rules (STAGES, RATE, GAIN), moods, scripted LINES, kee
 web/assets/cast.js        supporting characters: Pip (pink fairy host) and Moss (old turtle), 3D + bubbles. window.Cast.say(who,text)
 web/assets/director.js    the AI show-runner: beats every 20-40 s (answer viewer questions by name, polls the chat votes on with 1/2,
                           greet new keepers, banter, tips). LLM via think in mode 'show' (JSON lines/action/poll), scripted bank as fallback.
-web/assets/audience.js    demo crowd or live poller of api/tiktok.php?since=id
+web/assets/audience.js    demo crowd, or live = WebSocket /ws to the home server (events in, state out, admin cmds in)
 web/assets/beast.css      HUD tokens + layout, portrait (max-aspect-ratio 3/4) rules at the bottom
-web/api/tiktok.php        relay: POST from the bridge (secret, events, heartbeat) → SQLite queue; GET ?since= for the page
-web/api/think.php         LLM voice (Anthropic/OpenAI), key in web/api/config.local.php (git-ignored)
-api/think.js              same voice as a Vercel function for the demo (env ANTHROPIC_API_KEY) — keep its prompt in sync
-bridge/tiktok-bridge.js   Node: TikTok LIVE → web/api/tiktok.php (tiktok-live-connector), heartbeat every 30 s
+server/server.js          home server (Pi): HTTP static + / with config injection, /admin, /api/state, /api/think, /api/status,
+                          /api/events (external bridge, same contract), WebSocket /ws (roles display|admin), save in server/data/state.json
+server/bridge.js          in-process TikTok bridge (tiktok-live-connector) + demo crowd; server/think.js the LLM voice (shared)
+server/admin.html         admin panel (password → /api/login → token for /ws?role=admin): creature status, bridge, test events, settings
+server/config.json        local config (git-ignored; config.example.json = defaults). Secrets live here, never in the repo.
+api/think.js              Vercel function for the online demo; imports server/think.js (env ANTHROPIC_API_KEY / OPENAI_API_KEY)
 web/assets/art/           the 11 form concept images (Higgsfield gpt_image_2_5, 2026-09-16) — the art bible and the input of the 3D step
 web/assets/models/        optional form-NN.glb per form (NN = stage+1). creature.js loads them (GLTFLoader) and hides the
                           procedural body; the rig/FX/bubbles keep working. Missing file = procedural fallback.
@@ -34,13 +36,15 @@ scripts/meshy-rig.mjs     MESHY_API_KEY=… [CLIPS=idle,wave,dance,jump] node sc
                           cross-faded by dance/wave/sing/spin/hop) over the static form-NN.glb, over the procedural body.
 web/assets/models/        also char-pip.glb, char-moss.glb (cast.js) and prop-nest.glb (floating rock nest, creature.js buildEnvironment)
 web/assets/art/backdrop.png  painted 21:9 panorama on a cylinder behind the scene (creature.js buildEnvironment)
-scripts/build-web.sh      web/dist = web minus api (Vercel output, see vercel.json)
-.github/workflows/ci.yml  php -l, node --check, relay smoke test, build
+scripts/pi-install.sh     Raspberry Pi: Node 20, deps, avahi, systemd service `sociobeast` · pi-update.sh = git pull + restart
+scripts/build-web.sh      web/dist = web (Vercel output, see vercel.json)
+.github/workflows/ci.yml  node --check, home-server smoke test (demo), build
 ```
 
 ## Conventions
-- The browser tab is the game authority; the server never holds game state. Keep it that way (one OBS source = one creature).
-- Event contract (bridge → relay → game): `{type: like|comment|gift|follow|share|join, username, displayName, count, text, giftName, coins}`.
+- The display tab is the game authority (rules in game.js); the server only relays events, stores the save (state.json) and configures.
+  One display should run the show; extra screens start from the same save. Admin commands travel server → display as {type:'cmd'}.
+- Event contract (bridge → WebSocket → game): `{type: like|comment|gift|follow|share|join, username, displayName, count, text, giftName, coins}`.
 - Rules live in `game.js` only (STAGES / RATE / GAIN / LINES). One evolution per minute max (`EVOLVE_COOLDOWN`).
 - Creature parts appear per stage via `partScale` in the render loop; add a part = build it at scale 0.001, reveal it by stage.
 - Three.js r128 UMD from cdnjs + examples/js post-processing from jsdelivr; no ES modules, no `Vector3.randomDirection` (r130+).
@@ -53,11 +57,12 @@ scripts/build-web.sh      web/dist = web minus api (Vercel output, see vercel.js
 
 ## Test locally
 ```
-bash scripts/build-web.sh && python3 -m http.server -d web/dist 8769     # demo
-php -S 127.0.0.1:8090 -t web                                             # live page + relay (index.php, api/)
-curl -X POST 127.0.0.1:8090/api/tiktok.php -H 'Content-Type: application/json' -d '{"events":[{"type":"like","username":"t","count":5}]}'
-for f in web/assets/*.js api/think.js; do node --check "$f"; done; for f in web/*.php web/api/*.php; do php -l "$f"; done
+cd server && npm install && npm run demo       # http://localhost:8420/  ·  /admin (password beast)  ·  demo crowd server-side
+bash scripts/build-web.sh && python3 -m http.server -d web/dist 8769     # static demo (Vercel)
+for f in web/assets/*.js api/think.js server/*.js; do node --check "$f"; done
 ```
+npm cannot install inside the Google Drive folder (EBADF): develop the server from a local copy (C:\Users\moune\sociobeast-local,
+`web` junction to the Drive web folder) and copy package-lock.json back. On the Pi (ext4) it just works.
 In the page console: `Game.reset()`, `Game.evolve()`, `Game.handle({type:'gift',username:'x',giftName:'Galaxy',coins:1000})`,
 `Director.openPoll('Dance or sing?', ['dance','sing'], ['dance','sing'])`, `Director.beat()`, `Cast.say('moss', 'Hello')`.
 
@@ -67,6 +72,10 @@ no model yet. Path: art images (done) → `scripts/meshy-forms.mjs` with a Meshy
 → commit `web/assets/models/form-NN.glb`. Textured GLBs cannot blink or talk (static face); the rig still hops, squashes, tilts. Rigged forms (Meshy rigging, height_meters 0.6)
 render where their BONES are (armature in cm, geometry in m): measure the skeleton, never the geometry, to scale them (loadRig).
 Each clip GLB embeds the mesh (~6 MB): keep clips to what the show uses.
+
+## Raspberry Pi 2 notes
+32-bit armv7l: pi-install.sh uses the official Node tarball (NodeSource has no armhf build). 1 GB RAM is plenty for the server;
+it never renders the scene. tiktok-live-connector, ws and bonjour-service are pure JS. Port 8420; mDNS name `sociobeast.local`.
 
 ## Backlog
 1. Sound: a few procedural chirps (WebAudio) for hop / nom / evolve; TTS voice choice.

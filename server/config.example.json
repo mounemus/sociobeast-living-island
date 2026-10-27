@@ -1,0 +1,12 @@
+{
+  "port": 8420,
+  "adminPassword": "beast",
+  "creatureName": "SocioBeast",
+  "tiktokUsername": "",
+  "tiktokSessionId": "",
+  "autoStartBridge": true,
+  "demo": false,
+  "voice": false,
+  "ai": { "provider": "anthropic", "anthropicKey": "", "openaiKey": "", "anthropicModel": "claude-haiku-4-5-20251001", "openaiModel": "gpt-4o-mini" },
+  "mdnsName": "sociobeast"
+}

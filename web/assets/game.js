@@ -3,7 +3,7 @@
  * The rules of a creature raised by a TikTok Live audience.
  *   ❤️ likes feed it · 💬 comments cheer it (and it answers) · 🎁 gifts make it grow · ➕ follows make keepers.
  * It gets hungry, sleepy, lonely; it evolves through 6 forms; between two interactions it acts on its own.
- * One browser tab is the authority (the OBS source); state lives in localStorage.
+ * One browser tab is the authority (the OBS source); state lives in localStorage and, in live mode, on the home server (server/data/state.json).
  */
 (function() {
   'use strict';
@@ -38,12 +38,12 @@
   const KEY = 'sociobeast.beast.v1';
   let S = load();
   function load() {
-    try { const s = JSON.parse(localStorage.getItem(KEY)); if (!s || !s.totals) return fresh();
+    try { const s = window.BEAST_STATE || JSON.parse(localStorage.getItem(KEY)); if (!s || !s.totals) return fresh();
       const away = clamp((Date.now() - s.saved) / 1000, 0, 1800);        // tamagotchi: it got hungry while you were away (30 min cap)
       s.food = clamp(s.food - away * RATE.food * 0.5, 0, 100); s.joy = clamp(s.joy - away * RATE.joy * 0.5, 0, 100);
       s.energy = clamp(s.energy + away * 0.3, 0, 100); s.asleep = false; return s; } catch (e) { return fresh(); }
   }
-  function save() { S.saved = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function save() { S.saved = Date.now(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} if (window.Audience && Audience.sendState) Audience.sendState(S); }
   addEventListener('beforeunload', save);
 
   function stageOf(xp) { let i = 0; STAGES.forEach(function(s, n) { if (xp >= s.xp) i = n; }); return i; }
@@ -95,7 +95,7 @@
   function line(kind, ctx) { const t = pick(LINES[kind] || LINES.curious); return t.replace(/\{name\}/g, (ctx && ctx.name) || 'friend').replace(/\{beast\}/g, S.name).replace(/\{gift\}/g, (ctx && ctx.gift) || 'a gift').replace(/\{n\}/g, (ctx && ctx.n) || ''); }
 
   let speaking = 0, aiBusy = false, lastAiAt = 0, aiFails = 0;
-  const THINK_URL = LIVE ? 'api/think.php' : 'api/think';
+  const THINK_URL = 'api/think';
   function say(text, ms) {
     const b = $('bubble'); if (!b || !text) return;
     b.textContent = text; b.classList.remove('hidden'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
@@ -299,6 +299,9 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
   function reset() { S = fresh(); save(); location.reload(); }
+  function command(cmd, text) { // from the admin panel through the server
+    switch (cmd) { case 'reset': S = fresh(); save(); location.reload(); break; case 'evolve': forceEvolve(); break; case 'beat': if (window.Director) Director.beat(); break; case 'say': if (text) say(text, 6000); break; case 'dance': Creature.dance(5); break; case 'sing': Creature.sing(4); break; case 'wave': Creature.wave(3); break; case 'sleep': sleep(); break; }
+  }
   function forceEvolve() { if (!nextStage()) return; S.xp = Math.max(S.xp, nextStage().xp); lastEvolveAt = 0; gainXp(0); }
-  window.Game = { handle: handle, state: function() { return S; }, mood: function() { return mood; }, STAGES: STAGES, say: say, tts: tts, feed: feed, topKeepers: topKeepers, reset: reset, evolve: forceEvolve };
+  window.Game = { handle: handle, state: function() { return S; }, mood: function() { return mood; }, STAGES: STAGES, say: say, tts: tts, feed: feed, topKeepers: topKeepers, reset: reset, evolve: forceEvolve, command: command };
 })();

@@ -5,19 +5,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with: { php-version: '8.3', extensions: pdo_sqlite, curl }
-      - name: PHP syntax check
-        run: find web -name "*.php" -print0 | xargs -0 -n1 php -l
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - name: JS syntax check
-        run: for f in web/assets/*.js bridge/tiktok-bridge.js; do node --check "$f"; done
-      - name: Relay smoke test
+        run: for f in web/assets/*.js api/think.js server/*.js; do node --check "$f"; done
+      - name: Home server smoke test
         run: |
-          php -S 127.0.0.1:8090 -t web >/dev/null 2>&1 &
-          sleep 1
-          curl -sf -X POST 127.0.0.1:8090/api/tiktok.php -H 'Content-Type: application/json' -d '{"events":[{"type":"like","username":"ci","count":5}]}' | grep -q '"queued":1'
-          curl -sf '127.0.0.1:8090/api/tiktok.php?since=0' | grep -q '"events"'
+          cd server && npm install --omit=dev --no-audit --no-fund && cd ..
+          node server/server.js --demo > /tmp/server.log 2>&1 &
+          sleep 3
+          curl -sf http://127.0.0.1:8420/ | grep -q 'BEAST_CONFIG'
+          curl -sf http://127.0.0.1:8420/api/status | grep -q '"demo"'
+          curl -sf http://127.0.0.1:8420/admin | grep -q 'SocioBeast'
       - name: Build Vercel demo
         run: bash scripts/build-web.sh

@@ -11,44 +11,47 @@ It is not alone. **Pip**, a pink fairy-light, hosts the show: she greets new kee
 ## How it works
 
 ```
-TikTok LIVE ──► bridge/tiktok-bridge.js ──► web/api/tiktok.php ──► web/index.php (OBS browser source)
-                (Node, tiktok-live-connector)   (PHP relay, SQLite)      creature.js · game.js · audience.js
-                                                                          └─► web/api/think.php (LLM voice, optional)
+TikTok LIVE ──► server/server.js (Raspberry Pi or any PC, Node 20) ──► http://<pi-ip>:8420/   the creature page (OBS browser source)
+                 • built-in TikTok bridge (tiktok-live-connector)      http://<pi-ip>:8420/admin   settings, status, test events
+                 • WebSocket to every open screen, real time           http://sociobeast.local:8420
+                 • keeps the creature's save in server/data/state.json
+                 • AI voice relay (keys stay on the Pi)
 ```
 
-The game itself runs in one browser tab, the OBS source. It is the authority: vitals, evolution, keepers, memory, all in `localStorage`. The server only relays raw TikTok events and lends the creature a voice through an LLM.
+The rules of the game run in the browser tab that shows the creature (the OBS source). The server relays TikTok events to it in real time, remembers its state between restarts, exposes the admin panel on the local network and lends the cast a voice through an LLM. A Raspberry Pi 2 is enough for the server; it does not render the 3D scene, the streaming PC does.
 
 | Folder | What |
 |---|---|
-| `web/` | The game. `index.html` is the static demo, `index.php` the live page. No build step. |
-| `web/assets/creature.js` | Procedural Three.js creature: body, face, horns, arms, tail, wings, halo, nest, sky, effects. |
-| `web/assets/game.js` | Rules: vitals, moods, evolution, keepers, the creature's own behaviour, HUD, persistence. |
+| `web/` | The game page and its assets. `index.html` alone is the static demo (simulated audience). |
+| `web/assets/creature.js` | Three.js scene: Meshy-textured and rigged forms (`models/`), painted backdrop, floating nest, effects; procedural fallback. |
+| `web/assets/game.js` | Rules: vitals, moods, evolution, keepers, the creature's own behaviour, HUD, save. |
 | `web/assets/cast.js` | Pip and Moss, the supporting characters. |
 | `web/assets/director.js` | The show-runner: polls, viewer questions, greetings, banter (LLM or scripted). |
-| `web/assets/audience.js` | Event source: simulated crowd (demo) or the PHP relay (live). |
-| `web/api/` | `tiktok.php` relay, `think.php` LLM voice, `config.php`. |
-| `api/think.js` | Same voice as a Vercel function, for the demo (`ANTHROPIC_API_KEY` in the project env). |
-| `bridge/` | Node bridge from TikTok Live to the relay. |
+| `web/assets/audience.js` | Event source: simulated crowd (demo) or the home server over WebSocket (live). |
+| `server/` | The home server: `server.js` (HTTP + WebSocket + admin + save), `bridge.js` (TikTok / demo crowd), `think.js` (LLM voice), `admin.html`. |
+| `api/think.js` | The voice as a Vercel function, for the online demo (`ANTHROPIC_API_KEY` in the project env). |
+| `scripts/` | `pi-install.sh` / `pi-update.sh` (Raspberry Pi), `meshy-forms.mjs` / `meshy-rig.mjs` (3D assets), `build-web.sh` (Vercel). |
 
 ## Run it
 
-Demo, no server:
+On a Raspberry Pi (or any Linux box), once:
 
 ```bash
-bash scripts/build-web.sh && python3 -m http.server -d web/dist 8769
+git clone https://github.com/mounemus/sociobeast-living-island.git ~/sociobeast
+bash ~/sociobeast/scripts/pi-install.sh
 ```
 
-Live, on any PHP 8 host with SQLite and curl:
+Then open `http://<pi-ip>:8420/admin` (password `beast`, change it), enter the TikTok username, press **Connect to TikTok** or **Demo crowd**. In OBS on the streaming PC, add a browser source on `http://<pi-ip>:8420/` at 1080×1920. Updates later: `bash ~/sociobeast/scripts/pi-update.sh`.
+
+On a PC for a rehearsal:
 
 ```bash
-php -S 127.0.0.1:8090 -t web          # or point your web root at web/
-cp web/api/config.local.php.example web/api/config.local.php   # bridge secret + API key
-cd bridge && npm install && npm start  # after filling bridge/.env
+cd server && npm install && npm run demo      # http://localhost:8420/ and /admin
 ```
 
-OBS: browser source on `https://your-host/index.php` at 1080×1920. Add `?voice=1` for text-to-speech, `?name=Momo` to rename the creature.
+Online demo, no server: `bash scripts/build-web.sh && python3 -m http.server -d web/dist 8769`.
 
-Keys on the page: `H` hide HUD · `L` 25 likes · `G` Galaxy gift · `E` force evolution · `P` next show beat · `V` voice · `R` reset to egg.
+Keys on the page: `H` hide HUD · `L` 25 likes · `G` Galaxy gift · `E` force evolution · `P` next show beat · `V` voice · `R` reset to egg. The admin panel does the same from a phone.
 
 ## Rules in one table
 

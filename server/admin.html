@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SocioBeast · admin</title>
+<style>
+  :root { --ink: #f3f6f1; --ink-2: rgba(243,246,241,.64); --ink-3: rgba(243,246,241,.4); --glass: rgba(255,255,255,.05); --line: rgba(255,255,255,.1); --pink: #ff7ad9; --cyan: #6fe9ff; --gold: #f0d68a; --red: #ff5d6c; --green: #9dffc9; }
+  * { box-sizing: border-box; } body { margin: 0; background: #0b0a1e; color: var(--ink); font: 14px/1.4 Inter, 'Segoe UI', system-ui, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 14px; padding: 18px 20px 6px; } h1 { font: 600 22px 'Cormorant Garamond', Georgia, serif; margin: 0; } header small { color: var(--ink-3); }
+  main { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; padding: 14px 20px 40px; max-width: 1200px; }
+  section { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  h2 { margin: 0 0 10px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+  label { display: block; font-size: 12px; color: var(--ink-2); margin: 8px 0 3px; } input, select { width: 100%; background: rgba(0,0,0,.35); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font: inherit; }
+  input[type=checkbox] { width: auto; margin-right: 6px; } .chk { display: flex; align-items: center; margin-top: 8px; color: var(--ink-2); }
+  button { background: rgba(255,122,217,.18); color: var(--ink); border: 1px solid rgba(255,122,217,.4); border-radius: 8px; padding: 7px 12px; font: inherit; cursor: pointer; margin: 6px 6px 0 0; } button.alt { background: rgba(111,233,255,.14); border-color: rgba(111,233,255,.4); } button.warn { background: rgba(255,93,108,.14); border-color: rgba(255,93,108,.45); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; } .kv b { color: var(--ink-2); font-weight: 500; } .num { font-variant-numeric: tabular-nums; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--ink-3); } .dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); } .dot.warn { background: var(--gold); } .dot.err { background: var(--red); }
+  .bar { height: 6px; background: rgba(255,255,255,.12); border-radius: 3px; overflow: hidden; margin: 2px 0 6px; } .bar > div { height: 100%; border-radius: 3px; } #food { background: #ff6b86; } #joy { background: #8fd0ff; } #energy { background: #ffd76b; } #xp { background: linear-gradient(90deg, var(--green), var(--gold)); }
+  #feed { font-size: 12px; max-height: 260px; overflow: auto; } #feed div { padding: 3px 0; border-bottom: 1px solid var(--line); color: var(--ink-2); } #feed b { color: var(--ink); }
+  code { background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 6px; font-size: 12px; } a { color: var(--cyan); }
+  #login { position: fixed; inset: 0; background: #0b0a1e; display: flex; align-items: center; justify-content: center; } #login form { width: 300px; } #login.hidden { display: none; }
+  .row { display: flex; gap: 8px; } .row > * { flex: 1; }
+</style>
+</head>
+<body>
+<div id="login"><form onsubmit="login(event)"><h1>SocioBeast</h1><label>Admin password</label><input id="pw" type="password" autofocus><button style="width:100%">Enter</button><p id="login-err" style="color:var(--red)"></p></form></div>
+<header><h1>SocioBeast</h1><small>home server · <span id="displays">0</span> display(s) connected</small></header>
+<main>
+  <section><h2>Creature</h2>
+    <div class="kv"><b>Name</b><span id="s-name">–</span><b>Form</b><span id="s-stage">–</span><b>XP</b><span id="s-xp" class="num">–</span><b>Keepers</b><span id="s-keepers" class="num">–</span><b>Mood</b><span id="s-mood">–</span></div>
+    <div class="bar"><div id="xp"></div></div>
+    <label>Food</label><div class="bar"><div id="food"></div></div><label>Joy</label><div class="bar"><div id="joy"></div></div><label>Energy</label><div class="bar"><div id="energy"></div></div>
+    <button class="alt" onclick="cmd('evolve')">Force evolution</button><button class="alt" onclick="cmd('beat')">Next show beat</button><button class="alt" onclick="cmd('dance')">Dance</button><button class="alt" onclick="cmd('wave')">Wave</button>
+    <div class="row" style="margin-top:8px"><input id="say" placeholder="Make the creature say…"><button class="alt" onclick="cmd('say', document.getElementById('say').value)">Say</button></div>
+    <button class="warn" onclick="if (confirm('Reset the creature to an egg? Keepers and XP are lost.')) cmd('reset')">Reset to egg</button>
+  </section>
+  <section><h2>TikTok bridge</h2>
+    <div class="kv"><b>Status</b><span><span id="b-dot" class="dot"></span><span id="b-status">–</span></span><b>Account</b><span id="b-user">–</span><b>Events</b><span id="b-events" class="num">0</span><b>Last error</b><span id="b-err" style="color:var(--red)">–</span></div>
+    <button onclick="bridge('start')">Connect to TikTok</button><button class="alt" onclick="bridge('demo')">Demo crowd</button><button class="warn" onclick="bridge('stop')">Stop</button>
+    <h2 style="margin-top:14px">Test events</h2>
+    <button class="alt" onclick="inject({type:'like', username:'admin', count:25})">25 likes</button><button class="alt" onclick="inject({type:'comment', username:'admin', text:'dance'})">Comment “dance”</button><button class="alt" onclick="inject({type:'comment', username:'admin', text:'why are you glowing?'})">A question</button><button class="alt" onclick="inject({type:'gift', username:'admin', giftName:'Galaxy', coins:1000})">Galaxy gift</button><button class="alt" onclick="inject({type:'follow', username:'admin'})">Follow</button>
+  </section>
+  <section><h2>Settings</h2>
+    <label>Creature name</label><input id="c-creatureName">
+    <label>TikTok username (without @)</label><input id="c-tiktokUsername" placeholder="your_live_account">
+    <label>TikTok session id (optional, if the connector needs it)</label><input id="c-tiktokSessionId" type="password">
+    <div class="chk"><input id="c-autoStartBridge" type="checkbox"><span>Connect to TikTok when the server starts</span></div>
+    <div class="chk"><input id="c-voice" type="checkbox"><span>Text-to-speech on the display page</span></div>
+    <label>AI voice provider</label><select id="c-ai-provider"><option value="">none (scripted lines)</option><option value="anthropic">Anthropic</option><option value="openai">OpenAI</option></select>
+    <label>Anthropic key</label><input id="c-ai-anthropicKey" type="password" placeholder="sk-ant-…">
+    <label>OpenAI key</label><input id="c-ai-openaiKey" type="password" placeholder="sk-…">
+    <label>Network name (mDNS)</label><input id="c-mdnsName" placeholder="sociobeast">
+    <label>New admin password (leave empty to keep)</label><input id="c-adminPassword" type="password">
+    <button onclick="saveConfig()">Save settings</button><span id="saved" style="color:var(--green)"></span>
+  </section>
+  <section><h2>Screens</h2>
+    <p>Add one of these as an OBS <b>browser source</b> (1080×1920 for TikTok) or open it on any device of the house:</p>
+    <div id="urls"></div>
+    <p style="color:var(--ink-2);font-size:12px">Only one screen should run the show (it owns the rules); extra screens show the same creature from its last save. The server keeps the creature's state in <code>server/data/state.json</code>, so it survives restarts.</p>
+    <h2 style="margin-top:14px">Live feed</h2><div id="feed"></div>
+  </section>
+</main>
+<script>
+  const $ = id => document.getElementById(id); let ws, key = sessionStorage.getItem('sb-key') || '';
+  async function login(e) { e.preventDefault(); const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('pw').value }) }); if (!r.ok) { $('login-err').textContent = 'Wrong password'; return; } key = (await r.json()).key; sessionStorage.setItem('sb-key', key); connect(); }
+  function connect() { if (!key) return; ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?role=admin&key=' + key); ws.onmessage = m => render(JSON.parse(m.data)); ws.onopen = () => $('login').classList.add('hidden'); ws.onclose = () => setTimeout(connect, 2000); }
+  function sendMsg(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+  function cmd(c, text) { sendMsg({ type: 'cmd', cmd: c, text }); } function bridge(action) { sendMsg({ type: 'bridge', action }); } function inject(ev) { sendMsg({ type: 'inject', ev }); }
+  function saveConfig() { const c = { creatureName: $('c-creatureName').value, tiktokUsername: $('c-tiktokUsername').value, tiktokSessionId: $('c-tiktokSessionId').value, autoStartBridge: $('c-autoStartBridge').checked, voice: $('c-voice').checked, mdnsName: $('c-mdnsName').value, ai: { provider: $('c-ai-provider').value, anthropicKey: $('c-ai-anthropicKey').value, openaiKey: $('c-ai-openaiKey').value } }; if ($('c-adminPassword').value) c.adminPassword = $('c-adminPassword').value; sendMsg({ type: 'config', config: c }); $('saved').textContent = ' saved'; setTimeout(() => $('saved').textContent = '', 2000); if (c.adminPassword) { sessionStorage.removeItem('sb-key'); setTimeout(() => location.reload(), 500); } }
+  let filled = false;
+  function render(m) {
+    if (m.type === 'event') { const ev = m.ev; const el = document.createElement('div'); el.innerHTML = '<b>' + esc(ev.displayName || ev.username) + '</b> ' + ({ like: '❤️ ×' + (ev.count || 1), comment: '💬 ' + esc(ev.text || ''), gift: '🎁 ' + esc(ev.giftName || '') + ' ×' + (ev.count || 1) + ' (' + (ev.coins || 0) + ' coins)', follow: '➕ follow', share: '🔗 share', join: '👋 joined' }[ev.type] || ev.type); $('feed').prepend(el); while ($('feed').children.length > 40) $('feed').lastChild.remove(); return; }
+    if (m.type === 'state') { renderState(m.state); return; }
+    if (m.type !== 'admin') return;
+    $('displays').textContent = m.displays; renderState(m.state); renderBridge(m.bridge);
+    $('urls').innerHTML = (m.urls || []).map(u => '<div><a href="' + u + '" target="_blank">' + u + '</a> · <a href="' + u + 'admin">admin</a></div>').join('');
+    if (!filled) { filled = true; const c = m.config; $('c-creatureName').value = c.creatureName || ''; $('c-tiktokUsername').value = c.tiktokUsername || ''; $('c-tiktokSessionId').value = c.tiktokSessionId || ''; $('c-autoStartBridge').checked = !!c.autoStartBridge; $('c-voice').checked = !!c.voice; $('c-mdnsName').value = c.mdnsName || ''; $('c-ai-provider').value = c.ai.provider || ''; $('c-ai-anthropicKey').value = c.ai.anthropicKey || ''; $('c-ai-openaiKey').value = c.ai.openaiKey || ''; (m.recent || []).forEach(ev => render({ type: 'event', ev })); }
+  }
+  function renderBridge(b) { const dotCls = { connected: 'on', demo: 'on', connecting: 'warn', disconnected: 'warn', ended: 'warn', error: 'err', off: '' }[b.status] || ''; $('b-dot').className = 'dot ' + dotCls; $('b-status').textContent = b.status + (b.since ? ' · since ' + new Date(b.since).toLocaleTimeString() : ''); $('b-user').textContent = b.status === 'demo' ? 'demo crowd' : (b.username ? '@' + b.username : '–'); $('b-events').textContent = b.events; $('b-err').textContent = b.error || '–'; }
+  const STAGES = ['Egg', 'Baby', 'Child', 'Teen', 'Adult', 'Special Form', 'Legendary', 'Infinite ?'], XP = [0, 100, 1000, 5000, 10000, 50000, 100000, 250000];
+  function renderState(s) { if (!s) { $('s-name').textContent = 'no save yet (open a display page)'; return; } $('s-name').textContent = s.name; $('s-stage').textContent = STAGES[s.stage] || s.stage; const nx = XP[s.stage + 1]; $('s-xp').textContent = s.xp + (nx ? ' / ' + nx : ' (final)'); $('s-keepers').textContent = Object.keys(s.keepers || {}).length; $('s-mood').textContent = s.asleep ? 'asleep' : (s.food < 25 ? 'hungry' : 'ok'); $('xp').style.width = (nx ? (s.xp - XP[s.stage]) / (nx - XP[s.stage]) * 100 : 100) + '%'; ['food', 'joy', 'energy'].forEach(k => $(k).style.width = (s[k] || 0) + '%'); }
+  function esc(t) { return String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  connect();
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
  * SOCIOBEAST — Audience
  * Feeds Game.handle() with viewer events.
  *   demo : a simulated TikTok crowd in the browser (Vercel demo, rehearsals)
- *   live : polls api/tiktok.php?since=<id> — the PHP relay the Node bridge pushes real TikTok events into
+ *   live : WebSocket to the home server (server/server.js) that bridges TikTok Live and keeps the creature's save
  */
 (function() {
   'use strict';
@@ -31,18 +31,27 @@
     })();
   }
 
-  // ── live: poll the relay ──
+  // ── live: WebSocket to the home server (server/server.js). Events come in real time; the page sends its state back
+  //    every few seconds so the server keeps the creature on disk; admin commands arrive as {type:'cmd'}. ──
+  let ws = null, wsOpen = false;
   function live() {
-    let since = 0, failures = 0;
-    function poll() {
-      fetch('api/tiktok.php?since=' + since, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(d) {
-        failures = 0; (d.events || []).forEach(function(ev) { since = Math.max(since, ev.id || 0); Game.handle(ev); });
-        if (d.lastId) since = Math.max(since, d.lastId);
-        document.getElementById('h-live').classList.toggle('off', !d.bridgeAlive);
-      }).catch(function() { failures++; if (failures === 5) document.getElementById('h-live').classList.add('off'); });
+    const liveEl = document.getElementById('h-live');
+    function connect() {
+      ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?role=display');
+      ws.onopen = function() { wsOpen = true; };
+      ws.onclose = function() { wsOpen = false; liveEl.classList.add('off'); setTimeout(connect, 2000); };
+      ws.onmessage = function(m) {
+        let d; try { d = JSON.parse(m.data); } catch (e) { return; }
+        if (d.type === 'event' && d.ev) Game.handle(d.ev);
+        else if (d.type === 'hello' || d.type === 'bridge') { const b = d.bridge || {}; liveEl.classList.toggle('off', !(b.status === 'connected' || b.status === 'demo')); liveEl.textContent = b.status === 'demo' ? 'Demo' : 'Live'; }
+        else if (d.type === 'cmd') Game.command(d.cmd, d.text);
+        else if (d.type === 'config' && d.config) { C.ai = d.config.ai; C.voice = d.config.voice; }
+      };
     }
-    poll(); setInterval(poll, 1000);
+    connect();
   }
+  function sendState(state) { if (ws && wsOpen) ws.send(JSON.stringify({ type: 'state', state: state })); }
+  window.Audience = { sendState: sendState, connected: function() { return wsOpen; } };
 
   ready(function() { if (C.mode === 'live') live(); else demo(); });
 })();
