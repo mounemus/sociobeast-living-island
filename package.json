@@ -1,0 +1,6 @@
+{
+  "name": "sociobeast-living-island",
+  "private": true,
+  "type": "module",
+  "description": "A living 3D creature raised by a TikTok Live audience. Game page in web/, home server in server/, Vercel demo voice in api/."
+}
