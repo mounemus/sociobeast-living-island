@@ -28,7 +28,12 @@ bridge/tiktok-bridge.js   Node: TikTok LIVE → web/api/tiktok.php (tiktok-live-
 web/assets/art/           the 11 form concept images (Higgsfield gpt_image_2_5, 2026-09-16) — the art bible and the input of the 3D step
 web/assets/models/        optional form-NN.glb per form (NN = stage+1). creature.js loads them (GLTFLoader) and hides the
                           procedural body; the rig/FX/bubbles keep working. Missing file = procedural fallback.
-scripts/meshy-forms.mjs   MESHY_API_KEY=… node scripts/meshy-forms.mjs → image-to-3D (Meshy 5, textured) for each art image
+scripts/meshy-forms.mjs   MESHY_API_KEY=… node scripts/meshy-forms.mjs [form numbers | char-pip prop-nest] → image-to-3D (Meshy 5, textured)
+scripts/meshy-rig.mjs     MESHY_API_KEY=… [CLIPS=idle,wave,dance,jump] node scripts/meshy-rig.mjs 08 09 → rig + animation clips
+                          (form-NN-idle/wave/dance/jump/cheer/look.glb). creature.js prefers form-NN-idle.glb (AnimationMixer, clips
+                          cross-faded by dance/wave/sing/spin/hop) over the static form-NN.glb, over the procedural body.
+web/assets/models/        also char-pip.glb, char-moss.glb (cast.js) and prop-nest.glb (floating rock nest, creature.js buildEnvironment)
+web/assets/art/backdrop.png  painted 21:9 panorama on a cylinder behind the scene (creature.js buildEnvironment)
 scripts/build-web.sh      web/dist = web minus api (Vercel output, see vercel.json)
 .github/workflows/ci.yml  php -l, node --check, relay smoke test, build
 ```
@@ -59,7 +64,9 @@ In the page console: `Game.reset()`, `Game.evolve()`, `Game.handle({type:'gift',
 ## Graphics pipeline (owner's target: the Pixar-style poster)
 Higgsfield costs measured 2026-09-16: 1 credit per image, 30 credits per textured image_to_3d (20 untextured); balance was 28 →
 no model yet. Path: art images (done) → `scripts/meshy-forms.mjs` with a Meshy key (or Higgsfield image_to_3d when credits allow)
-→ commit `web/assets/models/form-NN.glb`. Textured GLBs cannot blink or talk (static face); the rig still hops, squashes, tilts.
+→ commit `web/assets/models/form-NN.glb`. Textured GLBs cannot blink or talk (static face); the rig still hops, squashes, tilts. Rigged forms (Meshy rigging, height_meters 0.6)
+render where their BONES are (armature in cm, geometry in m): measure the skeleton, never the geometry, to scale them (loadRig).
+Each clip GLB embeds the mesh (~6 MB): keep clips to what the show uses.
 
 ## Backlog
 1. Sound: a few procedural chirps (WebAudio) for hop / nom / evolve; TTS voice choice.

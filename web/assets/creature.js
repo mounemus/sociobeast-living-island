@@ -68,7 +68,7 @@
     scene = new T.Scene(); camera = new T.PerspectiveCamera(36, 1, 0.1, 200); clock = new T.Clock(); dot = dotTexture();
     buildRoom(); buildLights(); buildNest(); buildCreature(); buildParticles(); buildEnvironment();
     resize(); addEventListener('resize', resize);
-    if (T.EffectComposer && T.UnrealBloomPass) { composer = new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene, camera)); composer.addPass(new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.45, 0.7, 0.86)); }
+    if (T.EffectComposer && T.UnrealBloomPass) { composer = new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene, camera)); composer.addPass(new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.36, 0.7, 0.88)); }
     requestAnimationFrame(loop);
   }
   function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.fov = w < h ? 50 : 36; camera.updateProjectionMatrix(); if (composer) composer.setSize(w, h); }
@@ -229,7 +229,7 @@
     if (models[n] !== undefined || !T.GLTFLoader) return;
     models[n] = 'loading';
     new T.GLTFLoader().load(modelUrl(n), function(gltf) {
-      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.material.roughness = Math.min(0.85, (o.material.roughness || 0.7)); if (o.material.emissive && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.28; } } }); // textured models glow softly from their own texture, like the concept art
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.material.roughness = Math.min(0.85, (o.material.roughness || 0.7)); if (o.material.emissive && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.18; } } }); // textured models glow softly from their own texture, like the concept art
       const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), h = Math.max(0.001, size.y);
       const sc = 2.55 / h; obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
       obj.position.set(-c.x, -box.min.y, -c.z);
@@ -291,7 +291,7 @@
   function loadRig(n) {
     if (rigs[n] !== undefined || !T.GLTFLoader) return; rigs[n] = 'loading';
     new T.GLTFLoader().load(rigUrl(n, 'idle'), function(gltf) {
-      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.frustumCulled = false; if (o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.28; } } });
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.frustumCulled = false; if (o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.18; } } });
       // Skinned meshes render where the bones are (Meshy rigs: armature in cm, mesh geometry in m), so measure the skeleton, not the geometry
       obj.updateMatrixWorld(true); const bb = new T.Box3(); const wp = new T.Vector3();
       obj.traverse(function(o) { if (o.isBone) bb.expandByPoint(o.getWorldPosition(wp)); });
