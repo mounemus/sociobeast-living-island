@@ -54,7 +54,7 @@
     <button onclick="saveConfig()">Save settings</button><span id="saved" style="color:var(--green)"></span>
   </section>
   <section><h2>Screens</h2>
-    <p>Add one of these as an OBS <b>browser source</b> (1080×1920 for TikTok) or open it on any device of the house:</p>
+    <p>Add one of these as an OBS <b>browser source</b> (1080×1920 for TikTok), or open it on a phone with <code>?kiosk=1</code> and go LIVE with TikTok's screen sharing — no PC needed:</p>
     <div id="urls"></div>
     <p style="color:var(--ink-2);font-size:12px">Only one screen should run the show (it owns the rules); extra screens show the same creature from its last save. The server keeps the creature's state in <code>server/data/state.json</code>, so it survives restarts.</p>
     <h2 style="margin-top:14px">Live feed</h2><div id="feed"></div>
@@ -73,7 +73,7 @@
     if (m.type === 'state') { renderState(m.state); return; }
     if (m.type !== 'admin') return;
     $('displays').textContent = m.displays; renderState(m.state); renderBridge(m.bridge);
-    $('urls').innerHTML = (m.urls || []).map(u => '<div><a href="' + u + '" target="_blank">' + u + '</a> · <a href="' + u + 'admin">admin</a></div>').join('');
+    $('urls').innerHTML = (m.urls || []).map(u => '<div><a href="' + u + '" target="_blank">' + u + '</a> · <a href="' + u + '?kiosk=1" target="_blank">phone</a> · <a href="' + u + 'admin">admin</a></div>').join('');
     if (!filled) { filled = true; const c = m.config; $('c-creatureName').value = c.creatureName || ''; $('c-tiktokUsername').value = c.tiktokUsername || ''; $('c-tiktokSessionId').value = c.tiktokSessionId || ''; $('c-autoStartBridge').checked = !!c.autoStartBridge; $('c-voice').checked = !!c.voice; $('c-mdnsName').value = c.mdnsName || ''; $('c-ai-provider').value = c.ai.provider || ''; $('c-ai-anthropicKey').value = c.ai.anthropicKey || ''; $('c-ai-openaiKey').value = c.ai.openaiKey || ''; (m.recent || []).forEach(ev => render({ type: 'event', ev })); }
   }
   function renderBridge(b) { const dotCls = { connected: 'on', demo: 'on', connecting: 'warn', disconnected: 'warn', ended: 'warn', error: 'err', off: '' }[b.status] || ''; $('b-dot').className = 'dot ' + dotCls; $('b-status').textContent = b.status + (b.since ? ' · since ' + new Date(b.since).toLocaleTimeString() : ''); $('b-user').textContent = b.status === 'demo' ? 'demo crowd' : (b.username ? '@' + b.username : '–'); $('b-events').textContent = b.events; $('b-err').textContent = b.error || '–'; }

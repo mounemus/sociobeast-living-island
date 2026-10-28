@@ -41,6 +41,13 @@
         // mode=live is injected by the home server (server/server.js); the static page is the demo
         var q = new URLSearchParams(location.search);
         window.BEAST_CONFIG = window.BEAST_CONFIG || { mode: q.get('live') === '1' ? 'live' : 'demo', voice: q.get('voice') === '1', ai: q.get('ai') !== '0', name: q.get('name') || 'SocioBeast' };
+        if (q.get('kiosk') === '1') { // a phone (or an autonomous box) showing the creature to TikTok: full screen, screen kept awake, no operator help
+          document.documentElement.classList.add('kiosk');
+          var kioskArm = function() { try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function() {}); } catch (e) {}
+            try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function() {}); } catch (e) {} };
+          document.addEventListener('click', kioskArm); document.addEventListener('touchend', kioskArm);
+          document.addEventListener('visibilitychange', function() { if (!document.hidden) kioskArm(); });
+        }
         function loadScript(src) { return new Promise(function(res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function() { rej(src); }; document.head.appendChild(s); }); }
         function loadSeq(list) { return list.reduce(function(p, f) { return p.then(function() { return loadScript(f); }); }, Promise.resolve()); }
         var fx = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';

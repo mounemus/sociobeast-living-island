@@ -41,7 +41,9 @@ git clone https://github.com/mounemus/sociobeast-living-island.git ~/sociobeast
 bash ~/sociobeast/scripts/pi-install.sh
 ```
 
-Then open `http://<pi-ip>:8420/admin` (password `beast`, change it), enter the TikTok username, press **Connect to TikTok** or **Demo crowd**. In OBS on the streaming PC, add a browser source on `http://<pi-ip>:8420/` at 1080×1920. Updates later: `bash ~/sociobeast/scripts/pi-update.sh`.
+Then open `http://<pi-ip>:8420/admin` (password `beast`, change it), enter the TikTok username, press **Connect to TikTok** or **Demo crowd**. Updates later: `bash ~/sociobeast/scripts/pi-update.sh`. SD-card recipe and first-boot automation: `scripts/pi-image/README.md`.
+
+To put the creature on TikTok without a PC: open `http://<pi-ip>:8420/?kiosk=1` on a phone and go LIVE with TikTok's screen sharing (the phone renders, the Pi runs the show). With a PC: OBS browser source on `http://<pi-ip>:8420/` at 1080×1920. Autonomous box on a Pi 5: `scripts/pi-stream.sh` (Chromium + ffmpeg → RTMP, needs a TikTok stream key).
 
 On a PC for a rehearsal:
 

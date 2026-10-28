@@ -82,6 +82,7 @@ body { background: #0a1424; color: var(--ink); font-family: var(--font); overflo
 #cta.urgent { border-color: rgba(255,93,108,.5); color: var(--ink); } #cta.urgent b { color: var(--urgent); }
 #cta.evolve b { color: var(--xp); } #cta.sleep b { color: var(--joy); } #cta.egg b { color: var(--heart); }
 
+html.kiosk #help { display: none; }
 /* operator help: hidden from viewers until clicked */
 #help { position: absolute; right: 14px; bottom: 14px; font-size: 11px; color: var(--ink-3); pointer-events: auto; cursor: pointer; padding: 5px 9px; }
 #help .keys { display: none; margin-top: 6px; line-height: 1.7; color: var(--ink-2); }

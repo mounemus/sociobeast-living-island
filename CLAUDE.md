@@ -73,6 +73,11 @@ no model yet. Path: art images (done) → `scripts/meshy-forms.mjs` with a Meshy
 render where their BONES are (armature in cm, geometry in m): measure the skeleton, never the geometry, to scale them (loadRig).
 Each clip GLB embeds the mesh (~6 MB): keep clips to what the show uses.
 
+## Going live without a PC
+`?kiosk=1` on the page = full screen + wake lock on first tap + no `? keys` (html.kiosk). Phone opens it and TikTok screen-share LIVE
+streams it; the Pi only runs the show. `scripts/pi-stream.sh` = Chromium kiosk + ffmpeg x11grab → RTMP for a Pi 5 / PC (needs TikTok
+RTMP URL + key; untested, no Pi 5 here). `scripts/pi-image/`: SD-card recipe + `firstrun.sh` first-boot automation (untested on hardware).
+
 ## Raspberry Pi 2 notes
 32-bit armv7l: pi-install.sh uses the official Node tarball (NodeSource has no armhf build). 1 GB RAM is plenty for the server;
 it never renders the scene. tiktok-live-connector, ws and bonjour-service are pure JS. Port 8420; mDNS name `sociobeast.local`.
