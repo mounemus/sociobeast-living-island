@@ -16,12 +16,15 @@ export class Bridge extends EventEmitter {
     this.username = String(username || '').replace(/^@/, '').trim();
     if (!this.username) { this.status = 'error'; this.lastError = 'No TikTok username'; this.emit('status'); return; }
     this.status = 'connecting'; this.lastError = ''; this.emit('status');
+    // v1 exports WebcastPushConnection; v2 renamed it TikTokLiveConnection and keeps the v1 class (flat v1 event shape) under /legacy
     let WebcastPushConnection;
-    try { ({ WebcastPushConnection } = await import('tiktok-live-connector')); }
+    try { ({ WebcastPushConnection } = await import('tiktok-live-connector')); if (!WebcastPushConnection) ({ WebcastPushConnection } = await import('tiktok-live-connector/legacy')); }
     catch (e) { this.status = 'error'; this.lastError = 'tiktok-live-connector not installed (npm install in server/)'; this.emit('status'); return; }
     const opts = { enableExtendedGiftInfo: true, processInitialData: false };
     if (sessionId) opts.sessionId = sessionId;
-    const conn = this.conn = new WebcastPushConnection(this.username, opts);
+    let conn;
+    try { conn = this.conn = new WebcastPushConnection(this.username, opts); }
+    catch (e) { this.status = 'error'; this.lastError = 'bridge init: ' + String(e?.message || e).slice(0, 160); this.emit('status'); return; } // never take the server down with the bridge
     const user = d => ({ username: d.uniqueId || d.user?.uniqueId || 'anonymous', displayName: d.nickname || d.user?.nickname || d.uniqueId || 'anonymous' });
     conn.on('member', d => this.push({ type: 'join', ...user(d) }));
     conn.on('like', d => this.push({ type: 'like', ...user(d), count: d.likeCount || 1 }));
