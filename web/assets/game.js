@@ -190,9 +190,12 @@
 
   function evolve(st) {
     S.stage = st; S.evolvedAt[st] = Date.now(); lastEvolveAt = Date.now(); const stage = STAGES[st];
-    Creature.setStage(st, true); Creature.burstSparks(160, 0xfff2b0, 5); Creature.burstHearts(18, true); Creature.punch(1);
-    banner('<img src="assets/art/' + ART[st] + '.png" alt=""><div>✨ <b>' + S.name + '</b> evolved into <b>' + stage.name + '</b><span class="sub">' + esc(stage.intro) + '</span></div>', 'evolve art', 11000);
-    setTimeout(function() { speak('evolve', {}, 6000); Creature.spin(); Creature.dance(4); }, 1200);
+    Creature.punch(0.5); Creature.burstSparks(60, 0xffffff, 2);
+    setTimeout(function() {
+      Creature.setStage(st, true); Creature.burstSparks(200, 0xfff2b0, 6); Creature.burstHearts(24, true); Creature.punch(1);
+      banner('<img src="assets/art/' + ART[st] + '.png" alt=""><div>✨ <b>' + S.name + '</b> evolved into <b>' + stage.name + '</b><span class="sub">' + esc(stage.intro) + '</span></div>', 'evolve art', 11000);
+    }, 600);
+    setTimeout(function() { speak('evolve', {}, 6000); Creature.spin(); Creature.dance(5); Creature.burstSparks(80, 0xffe08a, 4); Creature.burstHearts(12, true); }, 1800);
     save();
   }
   function sleep() { if (S.asleep) return; S.asleep = true; S.wakeLikes = 0; Creature.setVitals(S); speak('sleep'); }
