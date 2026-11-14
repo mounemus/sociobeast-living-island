@@ -18,9 +18,35 @@ web/assets/game.js        rules (STAGES, RATE, GAIN), moods, scripted LINES, kee
                           window.Game = { handle, state, mood, say, reset, evolve }
 web/play.html             the online game, one creature per player (2026-11-14): species picker, care buttons, talk. No audience,
                           no home server needed; loads creature.js + cast.js + pet.js. The live show stays on index.html.
-web/assets/pet.js         its rules (SPECIES, STAGES, RATE): needs clock elapse() (ticks and time away), daily streak, bond, memory,
-                          AI talk through api/think mode 'pet' ({text, remember}). Save: localStorage 'sociobeast.pet.v1'.
-                          window.Pet = { state, mood, act, talk, check, reset }; Pet.check() self-tests the needs clock.
+web/assets/evolution.js   the online game's rules engine (2026-11-14, after the NEOLIFE brief in ../_docs/neolife): RULES (6 traits, the XP of
+                          the 7 stages, reward + cooldown + daily cap per event type), apply(state, {key, type, at, day}) = applied once or
+                          refused with a reason, journal, evolutions with their cause. No DOM, clock or randomness; also runs under Node:
+                          node -e "import('./web/assets/evolution.js').then(() => console.log(Evolution.check()))"  (in CI).
+web/assets/pet.js         the game around it (SPECIES, STAGES names, RATE): needs clock elapse() (ticks and time away, food and joy never
+                          below FLOOR, no death), daily streak, bond, memory, journal panel, AI talk through api/think mode 'pet'
+                          ({text, remember}). Every gain is reward(type) → Evolution.apply; the AI voice never grants anything.
+                          Save: localStorage 'sociobeast.pet.v1' (v2 = engine state merged in; v1 saves are migrated on load).
+                          window.Pet = { state, mood, act, talk, check, reset }; Pet.check() self-tests the needs clock and the engine.
+                          `where` = 'home' | 'city' | a place id; each action button lists where it shows (data-at in play.html);
+                          the first visit of the day to a place = explore_new_zone. ?q=low = low graphics (creature.js).
+web/assets/cloud.js       accounts and online save of the online game on Firebase (2026-11-14): sign-in by emailed link (Firebase
+                          Authentication, compat SDK from gstatic), one Firestore document pets/{uid} reached over REST, readable and
+                          writable by its owner only (firestore.rules at the repo root). Off while BEAST_CONFIG.firebase in play.html is
+                          empty (guests only). pet.js decides which save wins (pickSave: same creature -> the one further along; two
+                          different creatures -> the player chooses) and pushes at most every 20 s. The page is still the authority;
+                          moving events behind a server function running evolution.js is the next step before anything shared.
+                          Supabase was the first choice and was dropped: the owner's account is at its 2 free projects limit.
+                          Firebase project `sociobeast` (owner's Google account, Firestore nam5 = United States, free plan). firebase.json +
+                          .firebaserc at the repo root; deploy rules with the Firebase tools (`firebase deploy --only firestore`).
+                          scripts/test-firestore-rules.mjs = the real check of the rules: two throwaway accounts on the live project,
+                          15 assertions (owner only, no listing, no extra field, size cap), accounts deleted at the end.
+web/assets/city.js        the daylight plaza of the online game (2026-11-14): Seed Plaza + Pulse Tower (Create), Bloom Gallery, Seed Market,
+                          Echo Garden (Feed, Cuddle), Canopy Lounge (Play), built from primitives on first entry, palette given in sRGB
+                          (col()). Tap a place or the ground to walk (one side step around the fountain), a name button per place
+                          (keyboard), names slide along the screen edge when their place is off screen. window.City = { enter(onArrive),
+                          leave, goTo(id), active }. It uses creature.js: setView('home'|'city') (sky, fog, lights, bloom, sRGB lift,
+                          camera that follows from the south), goTo(points, done), standAt, ray, pos. The camera always looks north:
+                          keep anything tall out of the south side, and fade what can stand between it and the creature (the fountain bud).
                           5 species: dragon (form-NN files) + mochi, bolt, sprout, pixel. The 4 newer ones share the dragon's egg and
                           have 4 looks each: art assets/art/<id>-1..4.png, models assets/models/<id>-N-idle.glb (rigged, Meshy via
                           Higgsfield image_to_3d) or <id>-N.glb (static; pixel is a quadruped, the humanoid rig does not fit it).

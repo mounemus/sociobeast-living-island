@@ -10,16 +10,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
     <link rel="stylesheet" href="assets/beast.css?v=22">
-    <link rel="stylesheet" href="assets/play.css?v=2">
+    <link rel="stylesheet" href="assets/play.css?v=5">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
 </head>
 <body>
     <canvas id="scene"></canvas>
     <div id="load">Waking the nest…</div>
+    <div id="fade"></div>
 
     <div id="hud">
         <div id="top">
-            <div id="h-title" class="row"><span><span id="h-name"></span><span id="h-stage"></span></span><span class="r"><span id="h-mood"></span><span id="h-bond"></span><span id="h-streak"></span></span></div>
+            <div id="h-title" class="row"><span><span id="h-name"></span><span id="h-stage"></span></span><span class="r"><span id="h-mood"></span><span id="h-bond"></span><span id="h-streak"></span><button type="button" id="h-why" class="chip">Journal</button><button type="button" id="h-acct" class="chip hidden">Save online</button></span></div>
             <div><div class="bar"><div id="h-xp"></div></div><div id="h-xp-txt" class="num"></div></div>
             <div id="h-vitals" class="panel">
                 <div class="vital" id="v-food"><div class="row"><span>Food</span></div><div class="bar"><div id="h-food"></div></div></div>
@@ -31,18 +32,33 @@
         <div id="bubble-pip" class="bubble pip hidden"></div>
         <div id="bubble-moss" class="bubble moss hidden"></div>
         <div id="banner" class="hidden"></div>
-        <div id="cta"></div>
-        <form id="talk" class="hidden">
-            <input id="talk-in" maxlength="200" placeholder="Say something…" autocomplete="off" aria-label="Talk to your creature">
-            <button class="act primary">Send</button>
-        </form>
-        <div id="actions">
-            <button type="button" class="act primary hidden" data-act="warm">Warm the egg</button>
-            <button type="button" class="act" data-act="feed">Feed</button>
-            <button type="button" class="act" data-act="play">Play</button>
-            <button type="button" class="act" data-act="cuddle">Cuddle</button>
-            <button type="button" class="act" data-act="sleep">Sleep</button>
-            <button type="button" class="act" data-act="talk">Talk</button>
+        <div id="dock">
+            <div id="cta"></div>
+            <form id="talk" class="hidden">
+                <input id="talk-in" maxlength="200" placeholder="Say something…" autocomplete="off" aria-label="Talk to your creature">
+                <button class="act primary">Send</button>
+            </form>
+            <div id="actions">
+                <button type="button" class="act primary hidden" data-act="warm">Warm the egg</button>
+                <button type="button" class="act" data-act="feed" data-at="home echo">Feed</button>
+                <button type="button" class="act" data-act="play" data-at="home canopy">Play</button>
+                <button type="button" class="act" data-act="cuddle" data-at="home echo">Cuddle</button>
+                <button type="button" class="act" data-act="create" data-at="pulse">Create</button>
+                <button type="button" class="act" data-act="sleep" data-at="home">Sleep</button>
+                <button type="button" class="act" data-act="talk" data-at="home city">Talk</button>
+                <button type="button" class="act" data-act="city" data-at="home">City</button>
+                <button type="button" class="act" data-act="home" data-at="city">Home</button>
+            </div>
+        </div>
+        <div id="places" class="hidden"></div>
+        <div id="journal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="j-title">
+            <div class="panel">
+                <div class="row"><h2 id="j-title"></h2><button type="button" class="act" id="j-close">Close</button></div>
+                <p>Each action earns XP and shapes a trait, up to a gentle daily limit. Your creature never fades while you are away.</p>
+                <div id="j-traits"></div>
+                <div class="label">Evolutions</div><ol id="j-evo"></ol>
+                <div class="label">Latest</div><ol id="j-log"></ol>
+            </div>
         </div>
         <div id="picker" class="hidden">
             <form id="picker-form" class="panel">
@@ -54,20 +70,28 @@
                     <label>Its name<input id="p-name" maxlength="16" autocomplete="off"></label>
                     <label>Your name<input id="p-owner" maxlength="16" autocomplete="off"></label>
                 </div>
-                <button class="act primary">Start</button>
+                <div class="row end"><button type="button" id="p-signin" class="chip hidden">I already have a creature</button><button class="act primary">Start</button></div>
             </form>
+        </div>
+        <div id="account" class="hidden" role="dialog" aria-modal="true" aria-labelledby="a-title">
+            <div class="panel">
+                <div class="row"><h2 id="a-title">Save online</h2><button type="button" class="act" id="a-close">Close</button></div>
+                <div id="a-body"></div>
+            </div>
         </div>
     </div>
 
     <script>
-        window.BEAST_CONFIG = { mode: 'play' };
+        // firebase: the web app's public settings (apiKey, authDomain, projectId); empty = guests only, no account button.
+        // These three values are public by design; never put a service account key here.
+        window.BEAST_CONFIG = { mode: 'play', firebase: { apiKey: 'AIzaSyDkRV238ZMjvkWSQjCZAILEcdX3l1CU32k', authDomain: 'sociobeast.firebaseapp.com', projectId: 'sociobeast' } };
         function loadScript(src) { return new Promise(function(res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function() { rej(src); }; document.head.appendChild(s); }); }
         function loadSeq(list) { return list.reduce(function(p, f) { return p.then(function() { return loadScript(f); }); }, Promise.resolve()); }
         var fx = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
-          .then(function() { return loadSeq(['assets/creature.js?v=23', 'assets/cast.js?v=22', 'assets/pet.js?v=2']); })
+          .then(function() { return loadSeq(['assets/creature.js?v=26', 'assets/cast.js?v=23', 'assets/city.js?v=1', 'assets/evolution.js?v=2', 'assets/cloud.js?v=2', 'assets/pet.js?v=6']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>

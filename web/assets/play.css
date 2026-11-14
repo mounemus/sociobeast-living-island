@@ -1,36 +1,85 @@
-/* ═══ SOCIOBEAST — online game ═══  additions to beast.css (tokens, panels, bars, bubbles come from there) */
+/* ═══ SOCIOBEAST — online game ═══  additions to beast.css (panels, bars, bubbles come from there) */
+/* Organic Future tokens: pastel accents over night glass. The beast.css tokens are re-pointed to them for this page only. */
+:root {
+  --jade: #7CC9A4; --aqua: #6FDBD7; --turquoise: #9EE7E8; --lilac: #C6A5F3; --coral: #FFA6A3; --cream: #F7E9D9; --pink: #F9C0D7; --night: #202640;
+  --r-card: 24px; --r-panel: 32px;
+  --gold: var(--turquoise); --xp: var(--jade); --heart: var(--coral); --joy: var(--aqua); --energy: var(--lilac);
+  --glass: rgba(32,38,64,.6); --glass-2: rgba(32,38,64,.86);
+}
+body, #load { background: var(--night); }
 #h-streak { color: var(--gold); }
-#cta { bottom: 68px; }
-#actions { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: auto; }
-.act { font: 600 13px var(--font); color: var(--ink); background: var(--glass-2); border: 1px solid var(--line); border-radius: 999px; padding: 11px 16px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: transform .12s, border-color .2s, opacity .2s; }
-.act:hover, .act:focus-visible { border-color: rgba(240,214,138,.6); outline: none; }
+#h-vitals .vital .row span { display: inline; } /* beast.css hides the last span of a vital in portrait (the live page's hint); here the only span is the label */
+.chip { font: 600 10px var(--font); letter-spacing: .1em; text-transform: uppercase; color: var(--ink); background: var(--glass-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; pointer-events: auto; }
+
+/* ── bottom dock: hint (or talk box) above the actions; the actions wrap on a narrow screen ── */
+#dock { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0 2vw; }
+#dock #cta, #dock #talk, #actions { position: static; transform: none; }
+#actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.act { font: 600 13px var(--font); color: var(--ink); background: var(--glass-2); border: 1px solid var(--line); border-radius: 999px; padding: 11px 16px; cursor: pointer; white-space: nowrap; pointer-events: auto; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: transform .12s, border-color .2s, opacity .2s; }
+.act:hover, .act:focus-visible, .chip:hover, .chip:focus-visible { border-color: var(--gold); outline: none; }
 .act:active { transform: scale(.94); }
 .act:disabled { opacity: .35; cursor: default; }
-.act.primary { background: linear-gradient(135deg, #ff8fa3, #f0d68a); color: #23151c; border-color: transparent; }
+.act.primary { background: linear-gradient(135deg, var(--coral), var(--pink)); color: var(--night); border-color: transparent; }
 
-#talk { position: absolute; bottom: 68px; left: 50%; transform: translateX(-50%); width: min(94vw, 420px); display: flex; gap: 8px; pointer-events: auto; }
+#talk { width: min(94vw, 420px); display: flex; gap: 8px; pointer-events: auto; }
 #talk input { flex: 1; min-width: 0; }
-#talk input, #picker input { font: 15px var(--font); color: var(--ink); background: var(--glass-2); border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; outline: none; user-select: text; }
-#talk input:focus, #picker input:focus { border-color: var(--gold); }
+#talk input, #picker input, #account input[type=email] { font: 15px var(--font); color: var(--ink); background: var(--glass-2); border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; outline: none; user-select: text; }
+#talk input:focus, #picker input:focus, #account input:focus { border-color: var(--gold); }
 
 /* ── new player: choose a species, name it ── */
-#hud.picking > :not(#picker) { display: none; }
-#picker { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(6,10,20,.5); pointer-events: auto; }
-#picker form { width: min(94vw, 560px); max-height: 94vh; overflow: auto; padding: 22px; display: flex; flex-direction: column; gap: 14px; background: var(--glass-2); }
+#hud.picking > :not(#picker):not(#account) { display: none; }
+#picker, #journal, #account { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(13,16,32,.55); pointer-events: auto; }
+#picker form, #journal .panel, #account .panel { max-height: 94vh; overflow: auto; padding: 22px; display: flex; flex-direction: column; gap: 14px; background: var(--glass-2); border-radius: var(--r-panel); }
+#picker form { width: min(94vw, 560px); }
 #picker h1 { font: 600 28px/1.1 var(--serif); }
 #picker p { color: var(--ink-2); margin-top: -8px; }
 #species { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
-.card { font: inherit; text-align: center; color: var(--ink); background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 12px; padding: 6px; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
-.card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; object-position: 50% 30%; border-radius: 8px; background: #fff; margin-bottom: 6px; }
+.card { font: inherit; text-align: center; color: var(--ink); background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: var(--r-card); padding: 6px 6px 10px; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; object-position: 50% 30%; border-radius: 18px; background: #fff; margin-bottom: 6px; }
 .card b { display: block; font-weight: 600; font-size: 12px; }
 #picker #p-blurb { margin: 0; min-height: 1.4em; color: var(--ink); }
-.card.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 24px rgba(240,214,138,.2); }
+.card.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 24px color-mix(in srgb, var(--gold) 25%, transparent); }
 #picker .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 #picker label { display: flex; flex-direction: column; gap: 5px; min-width: 0; font-size: 11px; color: var(--ink-2); }
-#picker input { border-radius: 10px; padding: 10px 12px; min-width: 0; }
-#picker .act { align-self: flex-end; }
+#picker input { border-radius: 14px; padding: 10px 12px; min-width: 0; }
+#picker .row.end { justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+/* ── city: a name button above each place, a fade between the nest and the plaza, a backing for the title in daylight ── */
+#fade { position: fixed; inset: 0; z-index: 20; background: var(--night); opacity: 0; pointer-events: none; transition: opacity .3s; }
+#fade.on { opacity: 1; pointer-events: auto; }
+#hud.city #top { background: var(--glass-2); border-radius: 22px; padding: 10px 14px; }
+#places { position: absolute; inset: 0; }
+.place { position: absolute; left: 0; top: 0; font: 600 12px var(--font); color: var(--night); background: rgba(255,255,255,.86); border: 1px solid #fff; border-radius: 999px; padding: 7px 13px; cursor: pointer; pointer-events: auto; white-space: nowrap; box-shadow: 0 4px 14px rgba(32,38,64,.2); will-change: transform; }
+.place:hover, .place:focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px; }
+.place.on { background: var(--night); color: var(--cream); border-color: var(--night); }
+
+/* ── journal: the six traits and why each evolution happened ── */
+#journal .panel, #account .panel { width: min(94vw, 460px); user-select: text; }
+#journal h2, #account h2 { flex: 1; font: 600 22px/1.15 var(--serif); }
+#journal p, #journal .sub, #account p, #account .sub { color: var(--ink-2); font-size: 12px; }
+#journal ol { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: -6px; }
+#j-evo .sub { display: block; }
+.trait { display: grid; grid-template-columns: 86px 1fr 26px; align-items: center; gap: 10px; font-size: 12px; margin: 7px 0; }
+.trait .num { text-align: right; color: var(--ink-2); }
+.t-creativity .bar > div { background: var(--lilac); } .t-sociability .bar > div { background: var(--coral); } .t-curiosity .bar > div { background: var(--aqua); }
+.t-energy .bar > div { background: var(--cream); } .t-empathy .bar > div { background: var(--pink); } .t-expression .bar > div { background: var(--jade); }
+
+/* ── account: sign in by emailed link, or choose between two creatures ── */
+#account { z-index: 2; }
+#a-body, #a-form { display: flex; flex-direction: column; gap: 12px; }
+#account input[type=email] { border-radius: 14px; }
+#account .check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
+#account .check input { width: 18px; height: 18px; accent-color: var(--jade); }
+#account .row { gap: 10px; flex-wrap: wrap; }
+#a-msg:empty { display: none; }
+.pickone { border-radius: var(--r-card); text-align: left; white-space: normal; }
+.pickone .sub { display: block; font-weight: 400; margin-top: 3px; }
 
 @media (max-aspect-ratio: 3/4) {
+  #h-mood { display: none; } #h-title { flex-wrap: wrap; row-gap: 6px; } /* room for the Journal and account buttons: they drop to a second line when the name is long */
   .act { padding: 11px 13px; }
   #actions { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

@@ -13,6 +13,8 @@
   const clamp = function(v, a, b) { return Math.max(a, Math.min(b, v)); };
   const lerp = function(a, b, t) { return a + (b - a) * t; };
   const rnd = function(a, b) { return a + Math.random() * (b - a); };
+  // ?q=low: 1x pixels, no antialiasing, no post-processing (weak phones) · CALM: the system asks for reduced motion, the camera holds still
+  const LOW = /[?&]q=low\b/.test(location.search), CALM = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
 
   let renderer, scene, camera, composer, clock;
   let root, parts = {}, eyes = [];
@@ -28,8 +30,10 @@
     look: new T.Vector2(0, 0), lookTarget: new T.Vector2(0, 0), blink: 0, nextBlink: 2,
     mouthOpen: 0, mouthOpenT: 0, smile: 0.5, smileT: 0.5, brow: 0, browT: 0, blush: 0.5, blushT: 0.5,
     talk: 0, wave: 0, spin: 0, spinT: 0, dance: 0, wobble: 0, growth: 1, growthT: 1,
-    tx: 0, tz: 0, act: null, actT: 0, actDur: 0, glow: 0.3, stageGrow: 1, lookCam: 0
+    tx: 0, tz: 0, act: null, actT: 0, actDur: 0, glow: 0.3, stageGrow: 1, lookCam: 0,
+    view: 'home', hx: 0, hz: 0, path: null, yaw: 0 // view: 'home' (nest at night) or 'city' (daylight plaza) · hx,hz: where it stands · path: points left to walk
   };
+  const WALK = 4.6; // city walking speed, units per second
 
   // ─────────────────────────────────────────────────────────────
   // MATERIALS & HELPERS
@@ -64,27 +68,29 @@
   // BUILD
   // ─────────────────────────────────────────────────────────────
   function init(canvas) {
-    renderer = new T.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer = new T.WebGLRenderer({ canvas: canvas, antialias: !LOW, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, LOW ? 1 : 2));
     renderer.outputEncoding = T.sRGBEncoding; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
     scene = new T.Scene(); camera = new T.PerspectiveCamera(36, 1, 0.1, 200); clock = new T.Clock(); dot = dotTexture(); ringDot = ringBokehTexture();
     buildRoom(); buildLights(); buildNest(); buildCreature(); buildParticles(); buildEnvironment();
     resize(); addEventListener('resize', resize);
     addEventListener('mousemove', function(e) { mouseX = (e.clientX / innerWidth - 0.5) * 2; mouseY = (e.clientY / innerHeight - 0.5) * 2; });
     addEventListener('touchmove', function(e) { if (e.touches[0]) { mouseX = (e.touches[0].clientX / innerWidth - 0.5) * 2; mouseY = (e.touches[0].clientY / innerHeight - 0.5) * 2; } });
-    if (T.EffectComposer && T.UnrealBloomPass) { composer = new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene, camera)); composer.addPass(new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.5, 0.85, 0.78));
-      if (T.ShaderPass) { vignettePass = new T.ShaderPass({ uniforms: { tDiffuse: { value: null }, darkness: { value: 0.45 }, flash: { value: 0 }, time: { value: 0 } }, vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }', fragmentShader: 'uniform sampler2D tDiffuse; uniform float darkness; uniform float flash; uniform float time; varying vec2 vUv; void main(){ vec2 uv = vUv; float d = distance(uv, vec2(0.5)); float ca = d * d * 0.006; vec3 c = vec3(texture2D(tDiffuse, uv + vec2(ca, ca * 0.5)).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - vec2(ca, ca * 0.5)).b); c *= smoothstep(1.4, 0.45, d * darkness * 2.4); float lum = dot(c, vec3(0.2126, 0.7152, 0.0722)); vec3 warmShift = mix(vec3(0.06, 0.03, 0.0), vec3(0.0, 0.01, 0.06), clamp(d * 1.4, 0.0, 1.0)); c += warmShift * (1.0 - lum) * 0.4; c += lum * lum * vec3(0.03, 0.02, 0.04) * 0.3; c *= vec3(1.02, 0.99, 0.96); float grain = fract(sin(dot(uv + fract(time * 0.1), vec2(12.9898, 78.233))) * 43758.5453); c += (grain - 0.5) * 0.018; c += flash * vec3(1.0, 0.96, 0.88); gl_FragColor = vec4(c, 1.0); }' }); composer.addPass(vignettePass); }
+    if (!LOW && T.EffectComposer && T.UnrealBloomPass) { composer = new T.EffectComposer(renderer); composer.addPass(new T.RenderPass(scene, camera)); parts.bloom = new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.5, 0.85, 0.78); composer.addPass(parts.bloom);
+      // lift: 0 keeps the dark cinematic grade of the nest, 1 encodes to sRGB so the daylight city shows its real pastels
+      if (T.ShaderPass) { vignettePass = new T.ShaderPass({ uniforms: { tDiffuse: { value: null }, darkness: { value: 0.45 }, flash: { value: 0 }, time: { value: 0 }, lift: { value: 0 } }, vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }', fragmentShader: 'uniform sampler2D tDiffuse; uniform float darkness; uniform float flash; uniform float time; uniform float lift; varying vec2 vUv; void main(){ vec2 uv = vUv; float d = distance(uv, vec2(0.5)); float ca = d * d * 0.006; vec3 c = vec3(texture2D(tDiffuse, uv + vec2(ca, ca * 0.5)).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - vec2(ca, ca * 0.5)).b); c = mix(c, pow(max(c, 0.0), vec3(0.4545)), lift); c *= smoothstep(1.4, 0.45, d * darkness * 2.4); float lum = dot(c, vec3(0.2126, 0.7152, 0.0722)); vec3 warmShift = mix(vec3(0.06, 0.03, 0.0), vec3(0.0, 0.01, 0.06), clamp(d * 1.4, 0.0, 1.0)); c += warmShift * (1.0 - lum) * 0.4; c += lum * lum * vec3(0.03, 0.02, 0.04) * 0.3; c *= vec3(1.02, 0.99, 0.96); float grain = fract(sin(dot(uv + fract(time * 0.1), vec2(12.9898, 78.233))) * 43758.5453); c += (grain - 0.5) * 0.018; c += flash * vec3(1.0, 0.96, 0.88); gl_FragColor = vec4(c, 1.0); }' }); composer.addPass(vignettePass); }
     }
+    skyMat.uniforms.uSrgb.value = vignettePass ? 0 : 1; // without the grading pass, the day sky encodes itself
     requestAnimationFrame(loop);
   }
   function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.fov = w < h ? 50 : 36; camera.updateProjectionMatrix(); if (composer) composer.setSize(w, h); }
 
   function buildRoom() {
     skyMat = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false,
-      uniforms: { uTime: uni.time },
+      uniforms: { uTime: uni.time, uDay: { value: 0 }, uSrgb: { value: 0 } },
       vertexShader: 'varying vec3 vp; void main(){ vp = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: [
-        'uniform float uTime; varying vec3 vp;',
+        'uniform float uTime; uniform float uDay; uniform float uSrgb; varying vec3 vp;',
         'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }',
         'float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y); }',
         'float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){v+=a*noise(p);p*=2.1;a*=0.48;} return v; }',
@@ -95,7 +101,7 @@
         '  vec3 low  = vec3(0.055,0.025,0.1);',
         '  vec3 base = h > 0.0 ? mix(mid, deep, pow(h, 0.7)) : mix(mid, low, pow(-h, 0.6));',
         '  float t = uTime * 0.012;',
-        '  vec2 uv = vec2(atan(d.x, d.z) * 0.318, h);',
+        '  vec2 uv = vec2(atan(d.x, -d.z) * 0.318, h);', // -d.z: the atan seam (hard vertical edge in the nebula) sits at +z, behind the camera
         '  float n1 = fbm(uv * 3.0 + vec2(t, t * 0.7));',
         '  float n2 = fbm(uv * 5.0 - vec2(t * 0.5, t * 1.1) + 40.0);',
         '  float n3 = fbm(uv * 8.0 + vec2(t * 0.3, -t * 0.4) + 80.0);',
@@ -103,7 +109,11 @@
         '  vec3 neb2 = vec3(0.04, 0.06, 0.16) * smoothstep(0.4, 0.75, n2) * 1.0;',
         '  vec3 neb3 = vec3(0.08, 0.03, 0.12) * smoothstep(0.45, 0.8, n3) * 0.7;',
         '  vec3 c = base + neb1 + neb2 + neb3;',
-        '  gl_FragColor = vec4(c, 1.0);',
+        // the city's late-afternoon sky (linear values): peach horizon, lilac-blue zenith, aqua haze below, soft clouds
+        '  vec3 day = h > 0.0 ? mix(vec3(1.0, 0.62, 0.58), vec3(0.33, 0.42, 0.95), pow(h, 0.55)) : mix(vec3(1.0, 0.62, 0.58), vec3(0.45, 0.85, 0.80), pow(-h, 0.5));',
+        '  day += vec3(0.30, 0.22, 0.26) * smoothstep(0.42, 0.78, n1) * smoothstep(0.02, 0.35, h);',
+        '  day = mix(day, pow(day, vec3(0.4545)), uSrgb);',
+        '  gl_FragColor = vec4(mix(c, day, uDay), 1.0);',
         '}'
       ].join('\n') });
     scene.add(new T.Mesh(new T.SphereGeometry(90, 48, 24), skyMat));
@@ -125,8 +135,8 @@
     scene.add(stars);
   }
   function buildLights() {
-    scene.add(new T.HemisphereLight(0x9fb8ff, 0x2a1a3a, 0.45));
-    const key = new T.DirectionalLight(0xfff4e6, 0.85); key.position.set(3, 6, 5); scene.add(key);
+    parts.hemi = new T.HemisphereLight(0x9fb8ff, 0x2a1a3a, 0.45); scene.add(parts.hemi);
+    const key = parts.key = new T.DirectionalLight(0xfff4e6, 0.85); key.position.set(3, 6, 5); scene.add(key);
     parts.fill = new T.PointLight(PINK, 0.9, 14); parts.fill.position.set(-4.5, 3, 3.5); scene.add(parts.fill);
     parts.rim = new T.PointLight(CYAN, 1.0, 14); parts.rim.position.set(4.5, 3.5, -3); scene.add(parts.rim);
     parts.innerLight = new T.PointLight(0xffc6f0, 0.3, 4); parts.innerLight.position.set(0, 1.2, 0.6); scene.add(parts.innerLight);
@@ -307,7 +317,7 @@
       const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3());
       const sc = 4.7 / Math.max(size.x, size.z); obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
       obj.position.set(-c.x, -box.max.y + 0.42, -c.z); // bowl rim just under the creature's feet
-      nestModel = new T.Group(); nestModel.add(obj); scene.add(nestModel);
+      nestModel = new T.Group(); nestModel.add(obj); nestModel.visible = A.view === 'home'; scene.add(nestModel);
       nest.children.forEach(function(ch) { if (ch !== parts.runes) ch.visible = false; }); // procedural nest & table give way to the floating rock
     }, undefined, function() {});
     // dust motes: soft organic particles drifting through the scene
@@ -318,7 +328,7 @@
     scene.add(dustMotes);
   }
   function updateEnvironment(t, dt) {
-    if (nestModel) { nestModel.position.y = Math.sin(t * 0.45) * 0.06; nestModel.rotation.y = Math.sin(t * 0.08) * 0.03; nest.position.y = nestModel.position.y; root.position.y = nestModel.position.y; }
+    if (nestModel) { nestModel.position.y = Math.sin(t * 0.45) * 0.06; nestModel.rotation.y = Math.sin(t * 0.08) * 0.03; nest.position.y = nestModel.position.y; root.position.y = A.view === 'home' ? nestModel.position.y : 0; }
     if (dustMotes) { const dp = dustMotes.geometry.attributes.position; for (let i = 0; i < dp.count; i++) { const dv = dustVel[i]; dp.setX(i, dp.getX(i) + Math.sin(t * dv.sx + dv.px) * dt * 0.06); dp.setY(i, dp.getY(i) + Math.sin(t * dv.sy + dv.py) * dt * 0.03); dp.setZ(i, dp.getZ(i) + Math.sin(t * dv.sz + dv.pz) * dt * 0.06); } dp.needsUpdate = true; dustMotes.material.opacity = 0.35 + Math.sin(t * 0.3) * 0.1; }
     if (parts.backdrop) parts.backdrop.rotation.y = Math.sin(t * 0.02) * 0.02;
   }
@@ -381,17 +391,34 @@
   // ─────────────────────────────────────────────────────────────
   function act(name, dur) { A.act = name; A.actT = 0; A.actDur = dur || 1.5; }
   function hop(power) { if (A.usingRig && (power || 1) >= 0.8 && playClip('jump', 1.4)) return; if (A.grounded) { A.vy = 4.2 * (power || 1); A.grounded = false; } }
-  function wander() { const a = Math.random() * Math.PI * 2, r = 0.2 + Math.random() * 0.6; A.tx = Math.cos(a) * r; A.tz = Math.sin(a) * r; act('wander', 3); }
+  function wander() { const a = Math.random() * Math.PI * 2, r = 0.2 + Math.random() * 0.6; A.tx = A.hx + Math.cos(a) * r; A.tz = A.hz + Math.sin(a) * r; act('wander', 3); }
   function spin() { if (!(A.usingRig && playClip('jump', 1.6))) { A.spinT += Math.PI * 2; hop(0.8); } act('spin', 1.2); }
   function dance(sec) { if (A.usingRig) playClip('dance', sec || 4); act('dance', sec || 4); }
   function sing(sec) { if (A.usingRig) playClip('cheer', sec || 3.5); act('sing', sec || 3.5); }
-  function beg(sec) { A.tx = 0; A.tz = 0.3; act('beg', sec || 4); }
+  function beg(sec) { A.tx = A.hx; A.tz = A.hz + 0.3; act('beg', sec || 4); }
   function yawn() { act('yawn', 2.2); }
   function wave(sec) { if (A.usingRig) playClip('wave', sec || 2.5); act('wave', sec || 2.5); }
   function nom(sec) { act('nom', sec || 2); }
   function shiver(sec) { act('shiver', sec || 1.2); }
   function bow() { act('bow', 1.6); }
-  function play() { A.tx = (Math.random() - .5) * 1.2; A.tz = (Math.random() - .5) * 0.8; act('play', 3.5); }
+  function play() { A.tx = A.hx + (Math.random() - .5) * 1.2; A.tz = A.hz + (Math.random() - .5) * 0.8; act('play', 3.5); }
+  // ── the two places: the nest at night (camera in front) and the daylight city (3/4 camera that follows the walk) ──
+  function setView(v) {
+    const home = v !== 'city'; A.view = home ? 'home' : 'city'; A.path = null; A.act = null; A.yaw = 0;
+    A.hx = A.hz = A.tx = A.tz = 0; root.position.set(0, 0, 0); camTarget.set(0, 1.5, 0);
+    nest.visible = home; if (nestModel) nestModel.visible = home; if (parts.backdrop) parts.backdrop.visible = home;
+    [stars, bokeh, parts.bokehMid, parts.bokehNear, fireflies].forEach(function(o) { if (o) o.visible = home; });
+    skyMat.uniforms.uDay.value = home ? 0 : 1; scene.fog.color.set(home ? 0x06041a : 0xe3d0ee); if (!home) scene.fog.color.convertSRGBToLinear(); scene.fog.density = home ? 0.015 : 0.012;
+    parts.hemi.color.set(home ? 0x9fb8ff : 0xffffff); parts.hemi.groundColor.set(home ? 0x2a1a3a : 0x9a86c4); parts.hemi.intensity = 0.45;
+    parts.key.color.set(home ? 0xfff4e6 : 0xffdcc0); parts.key.intensity = home ? 0.85 : 0.6; if (home) parts.key.position.set(3, 6, 5); else parts.key.position.set(-6, 5, 5); // a low, warm sun
+    parts.accent.visible = home;
+    if (parts.bloom) parts.bloom.strength = home ? 0.5 : 0.16;
+    if (vignettePass) { vignettePass.uniforms.lift.value = home ? 0 : 1; vignettePass.uniforms.darkness.value = home ? 0.45 : 0.3; }
+  }
+  // walks through the points [{x, z}, …] at a steady pace, then calls done()
+  function goTo(points, done) { A.path = points.slice(); A.onArrive = done || null; A.act = null; }
+  function standAt(x, z) { A.path = null; A.hx = A.tx = x; A.hz = A.tz = z; root.position.x = x; root.position.z = z; camTarget.set(x, 1.5, z); }
+  function ray(cx, cy) { const r = new T.Raycaster(); r.setFromCamera(new T.Vector2(cx / innerWidth * 2 - 1, 1 - cy / innerHeight * 2), camera); return r; }
   function talk(sec) { A.talk = Math.max(A.talk, sec || 2); }
   function lookAtCamera(sec) { A.lookCam = sec || 3; }
   function lookAround() { A.lookTarget.set((Math.random() - .5) * 1.6, (Math.random() - .5) * 0.8); if (A.usingRig && Math.random() < 0.4) playClip('look', 3); }
@@ -470,11 +497,18 @@
     parts.rig.position.y = A.y;
 
     // position & facing
-    root.position.x = lerp(root.position.x, A.tx, k * 0.25); root.position.z = lerp(root.position.z, A.tz, k * 0.25);
+    const walking = !!(A.path && A.path.length);
+    if (walking) { // steady walk along the path; the last point becomes where it stands
+      const p = A.path[0], dx = p.x - root.position.x, dz = p.z - root.position.z, d = Math.hypot(dx, dz), step = WALK * dt;
+      if (d <= step) { root.position.x = p.x; root.position.z = p.z; A.path.shift(); if (!A.path.length) { A.hx = A.tx = p.x; A.hz = A.tz = p.z; const f = A.onArrive; A.onArrive = null; if (f) f(); } }
+      else { root.position.x += dx / d * step; root.position.z += dz / d * step; A.walkDir = Math.atan2(dx, dz); }
+    } else { root.position.x = lerp(root.position.x, A.tx, k * 0.25); root.position.z = lerp(root.position.z, A.tz, k * 0.25); }
     A.spin = lerp(A.spin, A.spinT, 1 - Math.pow(0.0001, dt)); if (Math.abs(A.spinT - A.spin) < 0.02) A.spin = A.spinT;
     const faceDir = Math.atan2(A.tx - root.position.x, A.tz - root.position.z);
-    const moving = Math.hypot(A.tx - root.position.x, A.tz - root.position.z) > 0.08;
-    parts.tilt.rotation.y = A.spin + (moving ? clamp(faceDir, -0.6, 0.6) : 0) * 0.35;
+    const moving = walking || Math.hypot(A.tx - root.position.x, A.tz - root.position.z) > 0.08;
+    const yawT = walking ? A.walkDir || 0 : (moving ? clamp(faceDir, -0.6, 0.6) : 0) * 0.35; // walking: face the way it goes; standing: face the camera
+    A.yaw += (((yawT - A.yaw + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * Math.min(1, k * 1.5);
+    parts.tilt.rotation.y = A.spin + A.yaw;
     parts.tilt.rotation.x = A.face + (A.asleep ? 0.22 : 0) + (A.fading ? 0.3 : 0) + (A.dance ? Math.sin(t * 6) * 0.08 : 0);
     parts.tilt.rotation.z = A.usingRig ? 0 : (A.dance ? Math.sin(t * 6) * 0.18 : (moving ? Math.sin(t * 10) * 0.05 : 0));
     if (A.usingRig) parts.tilt.rotation.x = A.face * 0.5 + (A.asleep ? 0.12 : 0);
@@ -533,6 +567,7 @@
     parts.rim.intensity = lerp(parts.rim.intensity, rimInt, k * 0.3);
     if (A.mood === 'ecstatic') { parts.fill.color.setHSL((moodHue + 0.9) % 1, 0.8, 0.7); parts.rim.color.setHSL((moodHue + 0.55) % 1, 0.8, 0.7); }
     else { parts.fill.color.set(PINK); parts.rim.color.set(CYAN); }
+    if (A.view === 'city') { parts.fill.position.set(root.position.x - 4.5, 3, root.position.z + 3.5); parts.rim.position.set(root.position.x + 4.5, 3.5, root.position.z - 3); } // the pastel rim lights follow the walk
 
     Object.keys(rigs).forEach(function(k) { if (rigs[k] && rigs[k].mixer && rigs[k].obj.visible) rigs[k].mixer.update(dt); });
     updateEnvironment(t, dt);
@@ -555,13 +590,17 @@
     orbitAngle += dt * 0.06; camPunch = lerp(camPunch, 0, k * 0.8);
     if (vignettePass) { vignettePass.uniforms.flash.value = lerp(vignettePass.uniforms.flash.value, 0, k * 1.5); vignettePass.uniforms.time.value = t; }
     const portrait = innerHeight > innerWidth;
-    const breathe = 1.0 + Math.sin(t * 0.4) * 0.012 + Math.sin(t * 0.17) * 0.008;
+    const breathe = 1.0 + (Math.sin(t * 0.4) * 0.012 + Math.sin(t * 0.17) * 0.008) * CALM;
     const dist = ((portrait ? 5.8 : 4.0) + A.growth * (portrait ? 4.0 : 3.4)) * (1 - camPunch * 0.15) * breathe;
-    camTarget.lerp(new T.Vector3(root.position.x * 0.5, (1.35 + (A.stage >= 6 ? 0.3 : 0)) * A.growth + (portrait ? 0.55 : 0.05), root.position.z * 0.5), k * 0.35);
-    const sway = Math.sin(orbitAngle * 0.5) * 0.3;
-    const microX = Math.sin(t * 7.3) * 0.004 + Math.sin(t * 11.1) * 0.002;
-    const microY = Math.sin(t * 5.7) * 0.003 + Math.sin(t * 9.3) * 0.002;
+    camTarget.lerp(A.view === 'city' ? new T.Vector3(root.position.x, 2.7, root.position.z) : new T.Vector3(root.position.x * 0.5, (1.35 + (A.stage >= 6 ? 0.3 : 0)) * A.growth + (portrait ? 0.55 : 0.05), root.position.z * 0.5), k * 0.35);
+    const sway = Math.sin(orbitAngle * 0.5) * 0.3 * CALM;
+    const microX = (Math.sin(t * 7.3) * 0.004 + Math.sin(t * 11.1) * 0.002) * CALM;
+    const microY = (Math.sin(t * 5.7) * 0.003 + Math.sin(t * 9.3) * 0.002) * CALM;
     camera.position.set(camTarget.x + Math.sin(sway) * dist + mouseX * 0.3 + microX, camTarget.y + 0.7 + A.growth * 0.35 + camPunch * 0.2 - mouseY * 0.15 + microY, camTarget.z + Math.cos(sway) * dist);
+    if (A.view === 'city') { // 3/4 view from the south, fixed heading, following the creature
+      const cd = ((portrait ? 14 : 10.5) + A.growth * 3.5) * (1 - camPunch * 0.1);
+      camera.position.set(camTarget.x + mouseX * 0.5 * CALM, camTarget.y + cd * 0.3, camTarget.z + cd);
+    }
     camera.lookAt(camTarget);
     if (composer) composer.render(); else renderer.render(scene, camera);
   }
@@ -575,5 +614,5 @@
   function ready() { return !!scene; }
   function project(x, y, z) { const v = new T.Vector3(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, visible: v.z < 1 }; }
   function cameraPos() { return camera.position; }
-  window.Creature = { init, ready, attach, project, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setForms, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
+  window.Creature = { init, ready, attach, project, setView, goTo, standAt, ray, pos: function() { return root.position; }, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setForms, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
 })();

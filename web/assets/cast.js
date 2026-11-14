@@ -111,5 +111,8 @@
     (function tick(now) { requestAnimationFrame(tick); const dt = Math.min(0.05, (now - last) / 1000); last = now; clockT += dt; update(dt, clockT); })(last);
   });
 
-  window.Cast = { say: say, react: react, has: function(who) { return !!chars[who]; } };
+  // the cast lives at the nest: hidden while the creature is out in the city (play.html)
+  function show(on) { Object.keys(chars).forEach(function(k) { const c = chars[k]; c.g.visible = on; if (c.trail) c.trail.forEach(function(s) { s.visible = on; }); if (!on && $(c.bubble)) $(c.bubble).classList.add('hidden'); }); }
+
+  window.Cast = { say: say, react: react, show: show, has: function(who) { return !!chars[who]; } };
 })();
