@@ -3,5 +3,5 @@
 set -e
 cd "$(dirname "$0")/.."
 rm -rf web/dist && mkdir -p web/dist
-cp -r web/index.html web/assets web/dist/
+cp -r web/index.html web/play.html web/assets web/dist/
 echo "web/dist ready ($(du -sh web/dist | cut -f1))"

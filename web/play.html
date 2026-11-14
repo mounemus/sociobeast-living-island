@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SocioBeast — raise your own creature</title>
+    <meta name="description" content="Choose a creature, hatch it and raise it. It gets hungry, sleeps, grows with your care and remembers you. By UbMaker.">
+    <meta property="og:title" content="SocioBeast — raise your own creature">
+    <meta property="og:description" content="Choose a creature, hatch it and raise it. It grows with your care and remembers you.">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
+    <link rel="stylesheet" href="assets/beast.css?v=22">
+    <link rel="stylesheet" href="assets/play.css?v=2">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
+</head>
+<body>
+    <canvas id="scene"></canvas>
+    <div id="load">Waking the nest…</div>
+
+    <div id="hud">
+        <div id="top">
+            <div id="h-title" class="row"><span><span id="h-name"></span><span id="h-stage"></span></span><span class="r"><span id="h-mood"></span><span id="h-bond"></span><span id="h-streak"></span></span></div>
+            <div><div class="bar"><div id="h-xp"></div></div><div id="h-xp-txt" class="num"></div></div>
+            <div id="h-vitals" class="panel">
+                <div class="vital" id="v-food"><div class="row"><span>Food</span></div><div class="bar"><div id="h-food"></div></div></div>
+                <div class="vital" id="v-joy"><div class="row"><span>Joy</span></div><div class="bar"><div id="h-joy"></div></div></div>
+                <div class="vital" id="v-energy"><div class="row"><span>Energy</span></div><div class="bar"><div id="h-energy"></div></div></div>
+            </div>
+        </div>
+        <div id="bubble" class="bubble hidden"></div>
+        <div id="bubble-pip" class="bubble pip hidden"></div>
+        <div id="bubble-moss" class="bubble moss hidden"></div>
+        <div id="banner" class="hidden"></div>
+        <div id="cta"></div>
+        <form id="talk" class="hidden">
+            <input id="talk-in" maxlength="200" placeholder="Say something…" autocomplete="off" aria-label="Talk to your creature">
+            <button class="act primary">Send</button>
+        </form>
+        <div id="actions">
+            <button type="button" class="act primary hidden" data-act="warm">Warm the egg</button>
+            <button type="button" class="act" data-act="feed">Feed</button>
+            <button type="button" class="act" data-act="play">Play</button>
+            <button type="button" class="act" data-act="cuddle">Cuddle</button>
+            <button type="button" class="act" data-act="sleep">Sleep</button>
+            <button type="button" class="act" data-act="talk">Talk</button>
+        </div>
+        <div id="picker" class="hidden">
+            <form id="picker-form" class="panel">
+                <h1>Choose your creature</h1>
+                <p>It hatches from an egg, grows with your care and remembers you.</p>
+                <div id="species"></div>
+                <p id="p-blurb"></p>
+                <div class="fields">
+                    <label>Its name<input id="p-name" maxlength="16" autocomplete="off"></label>
+                    <label>Your name<input id="p-owner" maxlength="16" autocomplete="off"></label>
+                </div>
+                <button class="act primary">Start</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.BEAST_CONFIG = { mode: 'play' };
+        function loadScript(src) { return new Promise(function(res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function() { rej(src); }; document.head.appendChild(s); }); }
+        function loadSeq(list) { return list.reduce(function(p, f) { return p.then(function() { return loadScript(f); }); }, Promise.resolve()); }
+        var fx = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
+        loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
+          .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
+          .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
+          .then(function() { return loadSeq(['assets/creature.js?v=23', 'assets/cast.js?v=22', 'assets/pet.js?v=2']); })
+          .then(function() { document.getElementById('load').classList.add('hidden'); })
+          .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
+    </script>
+</body>
+</html>

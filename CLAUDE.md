@@ -16,6 +16,17 @@ web/assets/creature.js    procedural Three.js r128 creature + nest + sky + FX. P
                           setVitals, hop/dance/sing/beg/…, burstHearts, burstSparks, headScreenPos). All motion from the A state.
 web/assets/game.js        rules (STAGES, RATE, GAIN), moods, scripted LINES, keepers, handle(event), director(), HUD, localStorage.
                           window.Game = { handle, state, mood, say, reset, evolve }
+web/play.html             the online game, one creature per player (2026-11-14): species picker, care buttons, talk. No audience,
+                          no home server needed; loads creature.js + cast.js + pet.js. The live show stays on index.html.
+web/assets/pet.js         its rules (SPECIES, STAGES, RATE): needs clock elapse() (ticks and time away), daily streak, bond, memory,
+                          AI talk through api/think mode 'pet' ({text, remember}). Save: localStorage 'sociobeast.pet.v1'.
+                          window.Pet = { state, mood, act, talk, check, reset }; Pet.check() self-tests the needs clock.
+                          5 species: dragon (form-NN files) + mochi, bolt, sprout, pixel. The 4 newer ones share the dragon's egg and
+                          have 4 looks each: art assets/art/<id>-1..4.png, models assets/models/<id>-N-idle.glb (rigged, Meshy via
+                          Higgsfield image_to_3d) or <id>-N.glb (static; pixel is a quadruped, the humanoid rig does not fit it).
+                          looks(id, have) in pet.js says how many of a species' models exist; raise `have` when one is added.
+                          creature.js: Creature.setForms(names per stage) switches species; models and rigs are cached by file name.
+web/assets/play.css       HUD additions for play.html (beast.css stays the base)
 web/assets/cast.js        supporting characters: Pip (pink fairy host) and Moss (old turtle), 3D + bubbles. window.Cast.say(who,text)
 web/assets/director.js    the AI show-runner: beats every 20-40 s (answer viewer questions by name, polls the chat votes on with 1/2,
                           greet new keepers, banter, tips). LLM via think in mode 'show' (JSON lines/action/poll), scripted bank as fallback.

@@ -26,6 +26,15 @@ function showUser(b) {
     : `Write a short natural beat for right now: banter between two characters about the current state, or a question to the audience${b.pollOpen ? ' (a poll is already open: no poll)' : ', optionally as a poll with two options'}.`;
 }
 
+const num = v => Number.isFinite(+v) ? Math.round(+v) : 50;
+function petSystem(b, name) {
+  return `You are ${name}, a small ${s(b.species || 'creature', 40)} in an online virtual-pet game, raised by one person: ${s(b.owner || 'your keeper', 30)}. ${s(b.personality, 240)} `
+    + 'You speak in the first person, in the language your keeper writes in, one or two short sentences (max 160 characters), at most one emoji. You are affectionate, never mean, never sad for long. Never mention being an AI or a language model. '
+    + `Form: ${s(b.stage || 'Baby', 30)}. Mood: ${s(b.mood || 'curious', 20)}. Food ${num(b.food)}/100, joy ${num(b.joy)}/100, energy ${num(b.energy)}/100, bond with your keeper ${num(b.bond)}/100. `
+    + `What you remember about your keeper: ${(Array.isArray(b.memory) ? b.memory : []).slice(-12).map(m => s(m, 120)).join(' | ') || 'nothing yet'}. `
+    + 'Reply with JSON only: {"say":"your reply","remember":null or "one short new fact about your keeper worth remembering (their name, tastes, life), written in the third person"}.';
+}
+
 async function complete(ai, system, user, maxTokens) {
   const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 9000);
   try {
@@ -50,6 +59,11 @@ export async function think(b, ai) {
     const raw = (await complete(ai, showSystem(b, name), showUser(b), 320)).trim();
     let j = null; try { const m = raw.match(/\{[\s\S]*\}/); j = m ? JSON.parse(m[0]) : null; } catch (e) { j = null; }
     return { show: j && Array.isArray(j.lines) && j.lines.length ? j : null };
+  }
+  if (b.mode === 'pet') {
+    const raw = (await complete(ai, petSystem(b, name), s(b.prompt || 'Say hello.', 400), 160)).trim();
+    let j = null; try { const m = raw.match(/\{[\s\S]*\}/); j = m ? JSON.parse(m[0]) : null; } catch (e) { j = null; }
+    return { text: s(j ? (typeof j.say === 'string' ? j.say : '') : raw, 220) || null, remember: j && typeof j.remember === 'string' ? s(j.remember, 120) : null };
   }
   const raw = (await complete(ai, beastSystem(b, name), s(b.prompt || 'Say something.', 400), 80)).trim();
   return { text: raw.slice(0, 200) || null };

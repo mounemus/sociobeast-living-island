@@ -261,28 +261,31 @@
   // assets/art/form-NN-*.png. When a form has a model it replaces the procedural body; the rig (hop, squash, tilt,
   // spin, breathing), the FX and the bubbles keep working. Missing files simply keep the procedural creature.
   // ─────────────────────────────────────────────────────────────
-  const models = {}; // stage → { obj, height } | 'missing' | 'loading'
+  const models = {}; // model name → { obj, height } | 'missing' | 'loading'
   const MODEL_FORMS = [1, 3, 4, 6, 8, 9, 11, 10]; // art-bible form per game stage (same mapping as ART in game.js)
-  function modelUrl(n) { return 'assets/models/form-' + String(MODEL_FORMS[n] || n + 1).padStart(2, '0') + '.glb'; }
-  function loadModel(n) {
+  let FORMS = null; // model name per stage for another species (play.html, see SPECIES in pet.js); null = the star dragon
+  function setForms(list) { FORMS = list || null; }
+  function base(n) { return FORMS ? FORMS[Math.min(n, FORMS.length - 1)] : 'form-' + String(MODEL_FORMS[n] || n + 1).padStart(2, '0'); }
+  function loadModel(st) {
+    const n = base(st);
     if (models[n] !== undefined || !T.GLTFLoader) return;
     models[n] = 'loading';
-    new T.GLTFLoader().load(modelUrl(n), function(gltf) {
+    new T.GLTFLoader().load('assets/models/' + n + '.glb', function(gltf) {
       const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.material.roughness = Math.min(0.85, (o.material.roughness || 0.7)); if (o.material.emissive && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.18; } } }); // textured models glow softly from their own texture, like the concept art
       const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), h = Math.max(0.001, size.y);
       const sc = 2.55 / h; obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
       obj.position.set(-c.x, -box.min.y, -c.z);
       const g = new T.Group(); g.add(obj); g.visible = false; parts.tilt.add(g);
       models[n] = { obj: g, height: 2.55 };
-      if (A.stage === n) showModel(n);
+      if (base(A.stage) === n) showModel(A.stage);
     }, undefined, function() { models[n] = 'missing'; });
   }
-  function showModel(n) {
-    const R = rigs[n] && rigs[n].obj ? rigs[n] : null;
-    Object.keys(rigs).forEach(function(k) { if (rigs[k] && rigs[k].obj) rigs[k].obj.visible = R && +k === n; });
-    Object.keys(models).forEach(function(k) { if (models[k] && models[k].obj) models[k].obj.visible = !R && +k === n; });
+  function showModel(st) {
+    const n = base(st), R = rigs[n] && rigs[n].obj ? rigs[n] : null;
+    Object.keys(rigs).forEach(function(k) { if (rigs[k] && rigs[k].obj) rigs[k].obj.visible = R && k === n; });
+    Object.keys(models).forEach(function(k) { if (models[k] && models[k].obj) models[k].obj.visible = !R && k === n; });
     const m = R || (models[n] && models[n].obj ? models[n] : null);
-    parts.beast.visible = !m && n > 0; parts.egg.visible = !m && n === 0;
+    parts.beast.visible = !m && st > 0; parts.egg.visible = !m && st === 0;
     A.usingModel = !!m; A.usingRig = !!R;
   }
 
@@ -324,10 +327,11 @@
   // RIGGED MODELS — form-NN-idle.glb (+ wave/dance/jump/cheer/look) from scripts/meshy-rig.mjs. When the idle clip
   // exists it is preferred over the static form model; the other clips are fetched lazily and cross-faded.
   // ─────────────────────────────────────────────────────────────
-  const rigs = {}; // stage → { obj, mixer, actions:{name:action}, current, clips:{name:'loading'|'missing'|clip} }
+  const rigs = {}; // model name → { obj, mixer, actions:{name:action}, current, clips:{name:'loading'|'missing'|clip} }
   const CLIP_NAMES = ['wave', 'dance', 'jump', 'cheer', 'look'];
-  function rigUrl(n, clip) { return 'assets/models/form-' + String(MODEL_FORMS[n] || n + 1).padStart(2, '0') + '-' + clip + '.glb'; }
-  function loadRig(n) {
+  function rigUrl(n, clip) { return 'assets/models/' + n + '-' + clip + '.glb'; }
+  function loadRig(st) {
+    const n = base(st);
     if (rigs[n] !== undefined || !T.GLTFLoader) return; rigs[n] = 'loading';
     new T.GLTFLoader().load(rigUrl(n, 'idle'), function(gltf) {
       const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.frustumCulled = false; if (o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.18; } } });
@@ -340,13 +344,13 @@
       const g = new T.Group(); g.add(obj); g.visible = false; parts.tilt.add(g);
       const mixer = new T.AnimationMixer(obj); const idle = gltf.animations[0] ? mixer.clipAction(gltf.animations[0]) : null; if (idle) idle.play();
       rigs[n] = { obj: g, root: obj, mixer: mixer, actions: { idle: idle }, current: idle, clips: {} };
-      if (A.stage === n) showModel(n);
+      if (base(A.stage) === n) showModel(A.stage);
     }, undefined, function() { rigs[n] = 'missing'; });
   }
   function playClip(name, seconds) {
-    const R = rigs[A.stage]; if (!R || typeof R === 'string') return false;
+    const R = rigs[base(A.stage)]; if (!R || typeof R === 'string') return false;
     if (!R.actions[name]) {
-      if (R.clips[name] === undefined) { R.clips[name] = 'loading'; new T.GLTFLoader().load(rigUrl(A.stage, name), function(gltf) { const clip = gltf.animations[0]; if (!clip) { R.clips[name] = 'missing'; return; } R.clips[name] = clip; R.actions[name] = R.mixer.clipAction(clip, R.root); if (A.clipWanted === name) playClip(name, seconds); }, undefined, function() { R.clips[name] = 'missing'; }); }
+      if (R.clips[name] === undefined) { R.clips[name] = 'loading'; new T.GLTFLoader().load(rigUrl(base(A.stage), name), function(gltf) { const clip = gltf.animations[0]; if (!clip) { R.clips[name] = 'missing'; return; } R.clips[name] = clip; R.actions[name] = R.mixer.clipAction(clip, R.root); if (A.clipWanted === name) playClip(name, seconds); }, undefined, function() { R.clips[name] = 'missing'; }); }
       A.clipWanted = name; return R.clips[name] !== 'missing';
     }
     const next = R.actions[name]; if (R.current === next) return true;
@@ -571,5 +575,5 @@
   function ready() { return !!scene; }
   function project(x, y, z) { const v = new T.Vector3(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, visible: v.z < 1 }; }
   function cameraPos() { return camera.position; }
-  window.Creature = { init, ready, attach, project, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
+  window.Creature = { init, ready, attach, project, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setForms, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
 })();

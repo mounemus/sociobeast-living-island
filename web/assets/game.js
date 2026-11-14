@@ -302,9 +302,9 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
   function reset() { S = fresh(); save(); location.reload(); }
-  function command(cmd, text) { // from the admin panel through the server
+  function adminCommand(cmd, text) { // from the admin panel through the server
     switch (cmd) { case 'reset': S = fresh(); save(); location.reload(); break; case 'evolve': forceEvolve(); break; case 'beat': if (window.Director) Director.beat(); break; case 'say': if (text) say(text, 6000); break; case 'dance': Creature.dance(5); break; case 'sing': Creature.sing(4); break; case 'wave': Creature.wave(3); break; case 'sleep': sleep(); break; }
   }
   function forceEvolve() { if (!nextStage()) return; S.xp = Math.max(S.xp, nextStage().xp); lastEvolveAt = 0; gainXp(0); }
-  window.Game = { handle: handle, state: function() { return S; }, mood: function() { return mood; }, STAGES: STAGES, say: say, tts: tts, feed: feed, topKeepers: topKeepers, reset: reset, evolve: forceEvolve, command: command };
+  window.Game = { handle: handle, state: function() { return S; }, mood: function() { return mood; }, STAGES: STAGES, say: say, tts: tts, feed: feed, topKeepers: topKeepers, reset: reset, evolve: forceEvolve, command: adminCommand };
 })();

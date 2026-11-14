@@ -1,0 +1,36 @@
+/* ═══ SOCIOBEAST — online game ═══  additions to beast.css (tokens, panels, bars, bubbles come from there) */
+#h-streak { color: var(--gold); }
+#cta { bottom: 68px; }
+#actions { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: auto; }
+.act { font: 600 13px var(--font); color: var(--ink); background: var(--glass-2); border: 1px solid var(--line); border-radius: 999px; padding: 11px 16px; cursor: pointer; white-space: nowrap; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: transform .12s, border-color .2s, opacity .2s; }
+.act:hover, .act:focus-visible { border-color: rgba(240,214,138,.6); outline: none; }
+.act:active { transform: scale(.94); }
+.act:disabled { opacity: .35; cursor: default; }
+.act.primary { background: linear-gradient(135deg, #ff8fa3, #f0d68a); color: #23151c; border-color: transparent; }
+
+#talk { position: absolute; bottom: 68px; left: 50%; transform: translateX(-50%); width: min(94vw, 420px); display: flex; gap: 8px; pointer-events: auto; }
+#talk input { flex: 1; min-width: 0; }
+#talk input, #picker input { font: 15px var(--font); color: var(--ink); background: var(--glass-2); border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; outline: none; user-select: text; }
+#talk input:focus, #picker input:focus { border-color: var(--gold); }
+
+/* ── new player: choose a species, name it ── */
+#hud.picking > :not(#picker) { display: none; }
+#picker { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(6,10,20,.5); pointer-events: auto; }
+#picker form { width: min(94vw, 560px); max-height: 94vh; overflow: auto; padding: 22px; display: flex; flex-direction: column; gap: 14px; background: var(--glass-2); }
+#picker h1 { font: 600 28px/1.1 var(--serif); }
+#picker p { color: var(--ink-2); margin-top: -8px; }
+#species { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.card { font: inherit; text-align: center; color: var(--ink); background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 12px; padding: 6px; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; object-position: 50% 30%; border-radius: 8px; background: #fff; margin-bottom: 6px; }
+.card b { display: block; font-weight: 600; font-size: 12px; }
+#picker #p-blurb { margin: 0; min-height: 1.4em; color: var(--ink); }
+.card.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 24px rgba(240,214,138,.2); }
+#picker .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#picker label { display: flex; flex-direction: column; gap: 5px; min-width: 0; font-size: 11px; color: var(--ink-2); }
+#picker input { border-radius: 10px; padding: 10px 12px; min-width: 0; }
+#picker .act { align-self: flex-end; }
+
+@media (max-aspect-ratio: 3/4) {
+  .act { padding: 11px 13px; }
+  #actions { gap: 6px; }
+}
