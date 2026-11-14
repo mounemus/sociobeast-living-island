@@ -10,7 +10,8 @@ jobs:
       - name: JS syntax check
         run: for f in web/assets/*.js api/think.js server/*.js; do node --check "$f"; done
       - name: Evolution rules self-test
-        run: node -e "import('./web/assets/evolution.js').then(() => process.exit(Evolution.check() ? 0 : 1))"
+        run: |
+          node -e "import('./web/assets/evolution.js').then(() => process.exit(Evolution.check() ? 0 : 1))"
       - name: Home server smoke test
         run: |
           cd server && npm install --omit=dev --no-audit --no-fund && cd ..
