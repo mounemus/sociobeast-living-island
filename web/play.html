@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
     <link rel="stylesheet" href="assets/beast.css?v=22">
-    <link rel="stylesheet" href="assets/play.css?v=6">
+    <link rel="stylesheet" href="assets/play.css?v=7">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
 </head>
 <body>
@@ -91,7 +91,7 @@
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
-          .then(function() { return loadSeq(['assets/creature.js?v=26', 'assets/cast.js?v=24', 'assets/city.js?v=3', 'assets/evolution.js?v=2', 'assets/cloud.js?v=2', 'assets/pet.js?v=8']); })
+          .then(function() { return loadSeq(['assets/creature.js?v=26', 'assets/cast.js?v=24', 'assets/city.js?v=4', 'assets/evolution.js?v=2', 'assets/cloud.js?v=2', 'assets/pet.js?v=9']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>

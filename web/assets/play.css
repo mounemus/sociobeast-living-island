@@ -49,6 +49,7 @@ body, #load { background: var(--night); }
 #fade.on { opacity: 1; pointer-events: auto; }
 #hud.city #top { background: var(--glass-2); border-radius: 22px; padding: 10px 14px; }
 #places { position: absolute; inset: 0; }
+.bubble.npc { background: rgba(232,246,255,.95); color: #17324a; font-size: 15px; border-radius: 16px 16px 16px 4px; } .bubble.npc::before { content: attr(data-who); }
 #banner, .bubble { z-index: 2; } /* announcements and speech stay above the place names */
 .place { position: absolute; left: 0; top: 0; font: 600 12px var(--font); color: var(--night); background: rgba(255,255,255,.86); border: 1px solid #fff; border-radius: 999px; padding: 7px 13px; cursor: pointer; pointer-events: auto; white-space: nowrap; box-shadow: 0 4px 14px rgba(32,38,64,.2); will-change: transform; }
 .place:hover, .place:focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px; }

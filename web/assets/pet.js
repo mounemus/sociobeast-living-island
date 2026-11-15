@@ -197,10 +197,12 @@
   // CITY — out of the nest: walk between the places; the first visit of the day to each one is a discovery
   // ─────────────────────────────────────────────────────────────
   function fade(fn) { const f = $('fade'); if (f.classList.contains('on')) return; f.classList.add('on'); setTimeout(function() { fn(); f.classList.remove('on'); }, 350); }
+  // the plaza's residents: one creature of every other species, in its second look (stage 2)
+  function residents() { return Object.keys(SPECIES).filter(function(id) { return id !== P.species; }).map(function(id) { return { name: SPECIES[id].defaultName, model: SPECIES[id].models ? SPECIES[id].models[2] : 'form-04' }; }); }
   // The game opens in the city (instant = no fade), egg included: it hatches on the plaza. An egg cannot walk, a sleeper stays in the nest.
   function enterCity(instant) {
     if (!P || P.asleep || where !== 'home') return;
-    const go = function() { $('hud').classList.add('city'); $('talk').classList.add('hidden'); if (window.Cast) Cast.show(false); City.enter(arrive, function() { return P.stage > 0 && !P.asleep; }); };
+    const go = function() { $('hud').classList.add('city'); $('talk').classList.add('hidden'); if (window.Cast) Cast.show(false); City.enter(arrive, function() { return P.stage > 0 && !P.asleep; }, { name: P.name, residents: residents() }); };
     if (instant === true) go(); else fade(go);
   }
   function goHome() {

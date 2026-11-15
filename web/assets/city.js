@@ -4,7 +4,7 @@
  * Echo Garden south-west, Canopy Lounge west. The camera always looks north, from behind the creature. Everything is built from primitives in the Organic Future palette, on first entry.
  * The creature walks where the player taps (a place or the ground); each place also carries a real button above it, so the
  * city works with a keyboard. This file knows the space; what a place gives belongs to pet.js.
- * window.City = { enter(onArrive, walkable), leave(), goTo(id), active() } · onArrive(id) fires at a place, onArrive(null) when it sets off.
+ * window.City = { enter(onArrive, walkable, opts), leave(), goTo(id), active() } · onArrive(id) fires at a place, onArrive(null) when it sets off.
  */
 (function() {
   'use strict';
@@ -162,9 +162,9 @@
   // ─────────────────────────────────────────────────────────────
   // WALK
   // ─────────────────────────────────────────────────────────────
-  // a straight line to `to`, with one side step when it would cross the fountain
-  function route(to) {
-    const a = Creature.pos(), dx = to.x - a.x, dz = to.z - a.z, L2 = dx * dx + dz * dz; if (L2 < 0.01) return [to];
+  // a straight line to `to` (from the player's creature, or from `from`), with one side step when it would cross the fountain
+  function route(to, from) {
+    const a = from || Creature.pos(), dx = to.x - a.x, dz = to.z - a.z, L2 = dx * dx + dz * dz; if (L2 < 0.01) return [to];
     const t = -(a.x * dx + a.z * dz) / L2; if (t <= 0 || t >= 1) return [to];
     let cx = a.x + dx * t, cz = a.z + dz * t, d = Math.hypot(cx, cz); if (d >= CORE_R) return [to];
     if (d < 0.05) { cx = -dz; cz = dx; d = Math.hypot(cx, cz); }
@@ -184,9 +184,67 @@
     const c = clampWalk(p.x, p.z); marker.position.set(c.x, 0.03, c.z); marker.visible = true; mark(null); if (cb) cb(null);
     Creature.goTo(route(c), function() { marker.visible = false; });
   }
+  // ─────────────────────────────────────────────────────────────
+  // RESIDENTS — creatures of the other species stroll between the places and greet the player's creature
+  // ─────────────────────────────────────────────────────────────
+  // ponytail: they are scenery with manners, each one its own copy of a creature model (no shared skeleton), five at most
+  // (two with ?q=low). Other players replace them when the city goes real-time.
+  const LOW = /[?&]q=low\b/.test(location.search);
+  const HELLO = ['Hi {n}!', 'Lovely day on the plaza, {n}.', 'Have you seen the fountain glow?', 'The gallery smells like fresh paint.', 'Race you to the market!', 'I like your style, {n}.', 'The garden pond is warm today.'];
+  let residents = [], npcBubble = null, speaker = null, lastFrame = 0, playerName = '';
+  function spawnResidents(list) {
+    npcBubble = document.createElement('div'); npcBubble.className = 'bubble npc hidden'; $('hud').appendChild(npcBubble);
+    (list || []).slice(0, LOW ? 2 : 5).forEach(function(r, i) {
+      const a = i * 2.4 + 1, start = clampWalk(Math.cos(a) * 9, Math.sin(a) * 9), g = new T.Group(); g.position.set(start.x, 0, start.z); g.visible = false; group.add(g);
+      const res = { g: g, name: r.name, path: [], wait: 1 + i * 1.7, yaw: 0, phase: i * 1.3, hello: 4 + i * 3, face: null, mixer: null, h: 2 };
+      residents.push(res);
+      const place = function(gltf, rigged) { // same scaling rules as the player's creature: a rig is measured by its bones
+        const obj = gltf.scene, H = 1.9, bb = new T.Box3(), wp = new T.Vector3();
+        obj.traverse(function(o) { if (o.isMesh && o.material) { o.frustumCulled = false; if (o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.18; } } });
+        obj.updateMatrixWorld(true); if (rigged) obj.traverse(function(o) { if (o.isBone) bb.expandByPoint(o.getWorldPosition(wp)); });
+        if (!bb.isEmpty()) { const bh = Math.max(0.001, bb.max.y - bb.min.y) * 1.22, sc = H / bh, c = bb.getCenter(new T.Vector3()); obj.scale.setScalar(sc); obj.position.set(-c.x * sc, -(bb.min.y - bh * 0.04) * sc, -c.z * sc); }
+        else { const box = new T.Box3().setFromObject(obj), sc = H / Math.max(0.001, box.getSize(new T.Vector3()).y); obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3()); obj.position.set(-c.x, -box.min.y, -c.z); }
+        if (rigged && gltf.animations[0]) { res.mixer = new T.AnimationMixer(obj); res.mixer.clipAction(gltf.animations[0]).play(); }
+        g.add(obj); g.visible = true;
+      };
+      const L = new T.GLTFLoader(); // the rigged file when it exists, else the static one, else nobody
+      L.load('assets/models/' + r.model + '-idle.glb', function(gltf) { place(gltf, true); }, undefined, function() { L.load('assets/models/' + r.model + '.glb', function(gltf) { place(gltf, false); }, undefined, function() {}); });
+    });
+  }
+  function greet(r) {
+    speaker = r; npcBubble.dataset.who = r.name; npcBubble.textContent = HELLO[Math.floor(Math.random() * HELLO.length)].replace('{n}', playerName || 'friend');
+    anchorBubble(); npcBubble.classList.remove('hidden'); npcBubble.classList.remove('pop'); // placed before it shows: no flash in the corner void npcBubble.offsetWidth; npcBubble.classList.add('pop');
+    clearTimeout(npcBubble._t); npcBubble._t = setTimeout(function() { npcBubble.classList.add('hidden'); speaker = null; }, 3600);
+  }
+  function updateResidents(dt, t) {
+    const me = Creature.pos();
+    residents.forEach(function(r) {
+      if (!r.g.visible) return; if (r.mixer) r.mixer.update(dt);
+      const p = r.g.position, toMe = Math.hypot(me.x - p.x, me.z - p.z); let moving = false;
+      r.hello -= dt;
+      if (toMe < 2.8 && r.hello <= 0) { r.hello = 28; r.wait = 3.8; r.path = []; r.face = Math.atan2(me.x - p.x, me.z - p.z); greet(r); } // it stops, turns to the creature and says hello
+      if (r.wait > 0) r.wait -= dt;
+      else if (!r.path.length) { // next stroll: mostly towards a place, sometimes anywhere on the plaza
+        const pl = PLACES[Math.floor(Math.random() * PLACES.length)], rx = (Math.random() - 0.5) * 3.6, rz = (Math.random() - 0.5) * 3.6;
+        const to = Math.random() < 0.7 ? clampWalk(pl.door[0] + rx, pl.door[1] + rz) : clampWalk((Math.random() - 0.5) * 24, (Math.random() - 0.5) * 24);
+        r.path = route(to, p); r.face = null;
+      } else if (CALM) {
+        const q = r.path[0], dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz), step = 2.1 * dt; moving = true;
+        if (d <= step) { p.x = q.x; p.z = q.z; r.path.shift(); if (!r.path.length) r.wait = 2 + Math.random() * 6; }
+        else { p.x += dx / d * step; p.z += dz / d * step; r.face = Math.atan2(dx, dz); }
+      }
+      const yawT = r.face === null ? 0 : r.face; // standing with nothing to look at: it faces the camera
+      r.yaw += (((yawT - r.yaw + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * Math.min(1, dt * 6); r.g.rotation.y = r.yaw;
+      p.y = moving ? Math.abs(Math.sin(t * 7 + r.phase)) * 0.16 : 0; // a little hop while it walks: the models only have an idle clip
+    });
+    if (speaker && !npcBubble.classList.contains('hidden')) anchorBubble();
+  }
+  function anchorBubble() { const s = Creature.project(speaker.g.position.x, speaker.h + 0.5, speaker.g.position.z);
+    npcBubble.style.transform = 'translate(-50%, -100%) translate(' + Math.round(Math.max(150, Math.min(innerWidth - 150, s.x))) + 'px,' + Math.round(Math.max($('top').offsetHeight + 60, s.y)) + 'px)'; }
   function frame(now) {
     if (!on) return; requestAnimationFrame(frame);
-    const t = now / 1000 * CALM; anim.forEach(function(f) { f(t); });
+    const t = now / 1000 * CALM, dt = Math.min(0.1, lastFrame ? (now - lastFrame) / 1000 : 0); lastFrame = now; anim.forEach(function(f) { f(t); });
+    updateResidents(dt, now / 1000);
     // a name stays on screen even when its place is not: it slides along the edge and points the way (a place behind the camera sits at the bottom)
     const cam = Creature.cameraPos(), top = $('top').offsetHeight + 56, bottom = innerHeight - $('dock').offsetHeight - 28;
     const placed = [];
@@ -197,13 +255,15 @@
   }
 
   // onArrive(id | null): see the header · walkable(): false while the creature cannot walk (an egg)
-  function enter(onArrive, walkable) {
-    if (!group) build();
+  // opts: { name: the player's creature, residents: [{ name, model }] } — the residents are created on the first entry
+  function enter(onArrive, walkable, opts) {
+    if (!group) { build(); spawnResidents(opts && opts.residents); }
+    playerName = (opts && opts.name) || playerName; lastFrame = 0;
     on = true; cb = onArrive || null; canWalk = walkable || null; group.visible = true; $('places').classList.remove('hidden');
     Creature.setView('city'); Creature.standAt(PLACES[0].door[0], PLACES[0].door[1]); mark('seed'); requestAnimationFrame(frame);
     if (cb) cb('seed');
   }
-  function leave() { on = false; if (group) group.visible = false; $('places').classList.add('hidden'); Creature.setView('home'); }
+  function leave() { on = false; if (group) group.visible = false; if (npcBubble) npcBubble.classList.add('hidden'); $('places').classList.add('hidden'); Creature.setView('home'); }
 
   window.City = { enter: enter, leave: leave, goTo: goTo, active: function() { return on; } };
 })();
