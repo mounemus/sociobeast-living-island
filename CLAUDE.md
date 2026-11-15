@@ -114,6 +114,12 @@ no model yet. Path: art images (done) → `scripts/meshy-forms.mjs` with a Meshy
 render where their BONES are (armature in cm, geometry in m): measure the skeleton, never the geometry, to scale them (loadRig).
 Each clip GLB embeds the mesh (~6 MB): keep clips to what the show uses.
 
+**Every model must be shrunk before it is committed**: `bash scripts/shrink-models.sh [files]` (textures to 1024 px with
+scripts/shrink-models.py, then Draco geometry through `npx @gltf-transform/cli draco`). A generated model goes from ~7 MB to
+~0.6 MB; the first visit of play.html went from ~96 MB of models to ~7.6 MB (2026-11-15). The page reads them through one
+loader, `Creature.loader()` (creature.js), which needs examples/js/loaders/DRACOLoader.js and fetches the Draco decoder from
+gstatic. creature.js fetches a form's static model only when it has no rigged file.
+
 ## Going live without a PC
 `?kiosk=1` on the page = full screen + wake lock on first tap + no `? keys` (html.kiosk). Phone opens it and TikTok screen-share LIVE
 streams it; the Pi only runs the show. `scripts/pi-stream.sh` = Chromium kiosk + ffmpeg x11grab → RTMP for a Pi 5 / PC (needs TikTok

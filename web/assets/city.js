@@ -61,7 +61,7 @@
   // width: its footprint in the plaza's units · fade: it turns transparent when the camera comes close (see fountain()).
   function loadModel(id, width, fade) {
     if (!T.GLTFLoader) return;
-    new T.GLTFLoader().load('assets/models/city-' + id + '.glb', function(gltf) {
+    Creature.loader().load('assets/models/city-' + id + '.glb', function(gltf) {
       const obj = gltf.scene, g = groups[id], p = PLACES.filter(function(q) { return q.id === id; })[0], box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3());
       obj.scale.setScalar(width / Math.max(size.x, size.z)); box.setFromObject(obj);
       const c = box.getCenter(new T.Vector3()); obj.position.set(-c.x, -box.min.y, -c.z);
@@ -207,7 +207,7 @@
         if (rigged && gltf.animations[0]) { res.mixer = new T.AnimationMixer(obj); res.mixer.clipAction(gltf.animations[0]).play(); }
         g.add(obj); g.visible = true;
       };
-      const L = new T.GLTFLoader(); // the rigged file when it exists, else the static one, else nobody
+      const L = Creature.loader(); // the rigged file when it exists, else the static one, else nobody
       L.load('assets/models/' + r.model + '-idle.glb', function(gltf) { place(gltf, true); }, undefined, function() { L.load('assets/models/' + r.model + '.glb', function(gltf) { place(gltf, false); }, undefined, function() {}); });
     });
   }

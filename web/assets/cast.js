@@ -54,7 +54,7 @@
   // Meshy-textured bodies for the cast (assets/models/char-pip.glb / char-moss.glb). Procedural bodies stay if missing.
   function loadCastModel(who, url, height, yaw) {
     if (!THREE.GLTFLoader) return;
-    new T.GLTFLoader().load(url, function(gltf) {
+    Creature.loader().load(url, function(gltf) {
       const c = chars[who]; if (!c) return;
       const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material && o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = who === 'pip' ? 0.5 : 0.25; } });
       const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), sc = height / Math.max(0.001, size.y);

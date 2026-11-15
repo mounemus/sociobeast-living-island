@@ -262,7 +262,7 @@
     A.stage = n; const L = STAGE_LOOK[Math.min(7, n)];
     A.growthT = L.s; if (!animate) A.growth = L.s;
     A.glow = L.glow; parts.egg.visible = n === 0; parts.beast.visible = n > 0;
-    loadRig(n); loadModel(n); showModel(n); if (n < 7) { loadRig(n + 1); loadModel(n + 1); } // prefetch the next form
+    loadRig(n); showModel(n); if (n < 7) loadRig(n + 1); // prefetch the next form. The static model is fetched only when a form has no rig (see loadRig)
     if (animate) { A.stageGrow = 0; camPunch = 1; }
   }
 
@@ -276,11 +276,11 @@
   let FORMS = null; // model name per stage for another species (play.html, see SPECIES in pet.js); null = the star dragon
   function setForms(list) { FORMS = list || null; }
   function base(n) { return FORMS ? FORMS[Math.min(n, FORMS.length - 1)] : 'form-' + String(MODEL_FORMS[n] || n + 1).padStart(2, '0'); }
-  function loadModel(st) {
-    const n = base(st);
+  function loadModel(st, name) {
+    const n = name || base(st);
     if (models[n] !== undefined || !T.GLTFLoader) return;
     models[n] = 'loading';
-    new T.GLTFLoader().load('assets/models/' + n + '.glb', function(gltf) {
+    loader().load('assets/models/' + n + '.glb', function(gltf) {
       const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.material.roughness = Math.min(0.85, (o.material.roughness || 0.7)); if (o.material.emissive && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.18; } } }); // textured models glow softly from their own texture, like the concept art
       const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3()), h = Math.max(0.001, size.y);
       const sc = 2.55 / h; obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
@@ -312,7 +312,7 @@
       const m = new T.Mesh(new T.CylinderGeometry(r, r, h, 48, 1, true, Math.PI - arc / 2, arc), new T.MeshBasicMaterial({ map: tex, side: T.DoubleSide, color: 0x9a94c4, fog: false, depthWrite: false }));
       m.position.y = h * 0.28; m.renderOrder = -1; scene.add(m); parts.backdrop = m;
     }, undefined, function() {});
-    if (T.GLTFLoader) new T.GLTFLoader().load('assets/models/prop-nest.glb', function(gltf) {
+    if (T.GLTFLoader) loader().load('assets/models/prop-nest.glb', function(gltf) {
       const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.22; } });
       const box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3());
       const sc = 4.7 / Math.max(size.x, size.z); obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
@@ -343,7 +343,7 @@
   function loadRig(st) {
     const n = base(st);
     if (rigs[n] !== undefined || !T.GLTFLoader) return; rigs[n] = 'loading';
-    new T.GLTFLoader().load(rigUrl(n, 'idle'), function(gltf) {
+    loader().load(rigUrl(n, 'idle'), function(gltf) {
       const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material) { o.frustumCulled = false; if (o.material.map && o.material.emissive) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.18; } } });
       // Skinned meshes render where the bones are (Meshy rigs: armature in cm, mesh geometry in m), so measure the skeleton, not the geometry
       obj.updateMatrixWorld(true); const bb = new T.Box3(); const wp = new T.Vector3();
@@ -355,18 +355,27 @@
       const mixer = new T.AnimationMixer(obj); const idle = gltf.animations[0] ? mixer.clipAction(gltf.animations[0]) : null; if (idle) idle.play();
       rigs[n] = { obj: g, root: obj, mixer: mixer, actions: { idle: idle }, current: idle, clips: {} };
       if (base(A.stage) === n) showModel(A.stage);
-    }, undefined, function() { rigs[n] = 'missing'; });
+    }, undefined, function() { rigs[n] = 'missing'; loadModel(st, n); }); // no rigged file for this form: its static model, if any
   }
   function playClip(name, seconds) {
     const R = rigs[base(A.stage)]; if (!R || typeof R === 'string') return false;
     if (!R.actions[name]) {
-      if (R.clips[name] === undefined) { R.clips[name] = 'loading'; new T.GLTFLoader().load(rigUrl(base(A.stage), name), function(gltf) { const clip = gltf.animations[0]; if (!clip) { R.clips[name] = 'missing'; return; } R.clips[name] = clip; R.actions[name] = R.mixer.clipAction(clip, R.root); if (A.clipWanted === name) playClip(name, seconds); }, undefined, function() { R.clips[name] = 'missing'; }); }
+      if (R.clips[name] === undefined) { R.clips[name] = 'loading'; loader().load(rigUrl(base(A.stage), name), function(gltf) { const clip = gltf.animations[0]; if (!clip) { R.clips[name] = 'missing'; return; } R.clips[name] = clip; R.actions[name] = R.mixer.clipAction(clip, R.root); if (A.clipWanted === name) playClip(name, seconds); }, undefined, function() { R.clips[name] = 'missing'; }); }
       A.clipWanted = name; return R.clips[name] !== 'missing';
     }
     const next = R.actions[name]; if (R.current === next) return true;
     next.reset(); next.setLoop(T.LoopRepeat, Infinity); next.fadeIn(0.25).play(); if (R.current) R.current.fadeOut(0.25); R.current = next;
     clearTimeout(A.clipTimer); A.clipTimer = setTimeout(function() { if (R.current === next && R.actions.idle) { R.actions.idle.reset().fadeIn(0.3).play(); next.fadeOut(0.3); R.current = R.actions.idle; } }, (seconds || 3) * 1000);
     return true;
+  }
+
+  // One loader for every model of the page. The models are stored with Draco-compressed geometry (scripts/shrink-models.sh):
+  // DRACOLoader fetches its decoder from Google's CDN on first use. Without DRACOLoader a compressed model fails to load
+  // and the procedural fallback stays.
+  let gltfLoader = null;
+  function loader() {
+    if (!gltfLoader) { gltfLoader = new T.GLTFLoader(); if (T.DRACOLoader) gltfLoader.setDRACOLoader(new T.DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/')); }
+    return gltfLoader;
   }
 
   function partScale(obj, on, k, mult) { const t = on ? (mult || 1) : 0.001; obj.scale.x += (t * Math.sign(obj.scale.x || 1) - obj.scale.x) * k; obj.scale.y += (t - obj.scale.y) * k; obj.scale.z += (t - obj.scale.z) * k; }
@@ -614,5 +623,5 @@
   function ready() { return !!scene; }
   function project(x, y, z) { const v = new T.Vector3(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, visible: v.z < 1 }; }
   function cameraPos() { return camera.position; }
-  window.Creature = { init, ready, attach, project, setView, goTo, standAt, ray, pos: function() { return root.position; }, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setForms, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
+  window.Creature = { init, ready, attach, project, loader, setView, goTo, standAt, ray, pos: function() { return root.position; }, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setForms, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
 })();
