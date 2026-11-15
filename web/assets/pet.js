@@ -299,7 +299,7 @@
       banner('<img src="assets/art/' + art + '.png" alt=""><div><b>' + esc(P.name) + '</b> ' + (st === 1 ? 'hatched' : 'evolved into <b>' + stage.name + '</b>') + '<span class="sub">' + esc(stage.intro) + '</span><span class="sub">' + esc(why) + '</span></div>', 'evolve art', 11000);
     }, 600);
     setTimeout(function() { speak(st === 1 ? 'hello' : 'evolve', 6000); Creature.spin(); Creature.dance(5); }, 1800);
-    if (st === 1) setTimeout(function() { pip('Feed it, play with it, talk to it. It grows with your care.'); }, 8000);
+    if (st === 1) setTimeout(function() { pip('Feed it, play with it, talk to it. Then tap City: a whole plaza is waiting outside.'); }, 8000);
     save();
   }
 
@@ -345,7 +345,7 @@
   function bar(id, v) { $(id).style.width = clamp(v, 0, 100) + '%'; }
   function cta() {
     const nx = nextStage(), left = nx ? Math.ceil(nx.xp - P.xp) : 0;
-    if (P.stage === 0) return ['Warm the egg · <b>' + Math.round(P.xp / STAGES[1].xp * 100) + '%</b> hatched', 'egg'];
+    if (P.stage === 0) return ['Warm the egg · <b>' + Math.round(P.xp / STAGES[1].xp * 100) + '%</b> hatched · the city opens when it hatches', 'egg'];
     if (P.asleep) return [esc(P.name) + ' is asleep · it wakes up rested', 'sleep'];
     if (P.food < 30) return ['<b>Hungry!</b> Feed ' + esc(P.name), 'urgent'];
     if (P.energy < 22) return ['<b>Tired…</b> ' + (where === 'home' ? 'put ' + esc(P.name) + ' to sleep' : 'take ' + esc(P.name) + ' home to sleep'), ''];

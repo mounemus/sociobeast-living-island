@@ -23,6 +23,7 @@
   const WALK_R = 12.6, CORE_R = 4.7; // the walkable ring: inside the buildings, outside the fountain
   const GROUND = new T.Plane(new T.Vector3(0, 1, 0), 0);
   let group = null, on = false, cb = null, hits = [], marker, anim = [], M = {};
+  const groups = {}; // place id → its group, facing the plaza
   let seedRand = 7; function rnd() { seedRand = (seedRand * 16807) % 2147483647; return seedRand / 2147483647; } // same city on every visit
 
   // ─────────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@
   function cyl(rt, rb, h, seg) { return new T.CylinderGeometry(rt, rb, h, seg || 20); }
   function add(g, geo, mat, x, y, z, sx, sy, sz) { const m = new T.Mesh(geo, mat); m.position.set(x || 0, y || 0, z || 0); m.scale.set(sx || 1, sy || sx || 1, sz || sx || 1); g.add(m); return m; }
   function flat(g, geo, mat, y) { const m = new T.Mesh(geo, mat); m.rotation.x = -Math.PI / 2; m.position.y = y; g.add(m); return m; }
-  function placeGroup(id) { const p = PLACES.filter(function(q) { return q.id === id; })[0], g = new T.Group(); g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); group.add(g); return g; } // its front (+z) faces the plaza
+  function placeGroup(id) { const p = PLACES.filter(function(q) { return q.id === id; })[0], g = new T.Group(); g.position.set(p.x, 0, p.z); g.rotation.y = Math.atan2(-p.x, -p.z); group.add(g); groups[id] = g; return g; } // its front (+z) faces the plaza
 
   function build() {
     group = new T.Group();
@@ -45,6 +46,7 @@
       water: std(0x8fe3df, { roughness: 0.12, metalness: 0.25, emissive: col(0x6fdbd7), emissiveIntensity: 0.16 }),
       lilac: glow(0xc6a5f3, 0.55), aqua: glow(0x6fdbd7, 0.5), coral: std(0xffa6a3), pink: std(0xf9c0d7, { roughness: 0.85 }), cream: std(0xf7e9d9, { roughness: 0.7 }) };
     ground(); fountain(); pulse(); bloom(); market(); echo(); canopy(); trees(); skyline();
+    loadModel('bloom', 10.5, 0);
     PLACES.forEach(function(p) { // tap targets and name buttons
       const h = add(group, cyl(p.r, p.r, p.top, 12), new T.MeshBasicMaterial({ visible: false }), p.x, p.top / 2, p.z); h.userData.id = p.id; hits.push(h);
       const b = document.createElement('button'); b.type = 'button'; b.className = 'place'; b.textContent = p.label; b.addEventListener('click', function() { goTo(p.id); }); $('places').appendChild(b); p.el = b;
@@ -52,6 +54,19 @@
     marker = flat(group, new T.RingGeometry(0.45, 0.6, 28), new T.MeshBasicMaterial({ color: col(0xc6a5f3), transparent: true, opacity: 0.9 }), 0.03); marker.visible = false;
     $('scene').addEventListener('click', tap);
     Creature.attach(group);
+  }
+  // Optional textured building of a place: assets/models/city-<id>.glb, made from a concept image like the creatures
+  // (assets/art/city-<id>.png → image_to_3d). When the file exists it replaces that place's primitives; a missing file keeps them.
+  // width: its footprint in the plaza's units · yaw: extra turn if the model's front is not +z.
+  function loadModel(id, width, yaw) {
+    if (!T.GLTFLoader) return;
+    new T.GLTFLoader().load('assets/models/city-' + id + '.glb', function(gltf) {
+      const obj = gltf.scene, g = groups[id], box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3());
+      obj.scale.setScalar(width / Math.max(size.x, size.z)); obj.rotation.y = yaw || 0; box.setFromObject(obj);
+      const c = box.getCenter(new T.Vector3()); obj.position.set(-c.x, -box.min.y, -c.z);
+      g.children.forEach(function(ch) { ch.visible = false; }); g.add(obj);
+      PLACES.filter(function(q) { return q.id === id; })[0].top = box.max.y - box.min.y + 0.4; // the name sits just above the roof
+    }, undefined, function() {});
   }
   function ground() {
     flat(group, new T.CircleGeometry(120, 48), M.water, -0.4);                                   // lagoon
