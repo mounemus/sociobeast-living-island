@@ -40,6 +40,10 @@ web/assets/cloud.js       accounts and online save of the online game on Firebas
                           .firebaserc at the repo root; deploy rules with the Firebase tools (`firebase deploy --only firestore`).
                           scripts/test-firestore-rules.mjs = the real check of the rules: two throwaway accounts on the live project,
                           15 assertions (owner only, no listing, no extra field, size cap), accounts deleted at the end.
+web/assets/city.js        (state on 2026-11-14 night) play.html OPENS in this city, egg included; the nest is only for sleeping. Each place is a
+                          textured model assets/models/city-<id>.glb (bloom, pulse, market, canopy, echo, seed; source image
+                          assets/art/city-<id>.png, made like the creatures), loaded by loadModel(id, width, fade); a missing file keeps
+                          the primitives below. Residents: one creature of every other species strolls and greets (spawnResidents).
 web/assets/city.js        the daylight plaza of the online game (2026-11-14): Seed Plaza + Pulse Tower (Create), Bloom Gallery, Seed Market,
                           Echo Garden (Feed, Cuddle), Canopy Lounge (Play), built from primitives on first entry, palette given in sRGB
                           (col()). Tap a place or the ground to walk (one side step around the fountain), a name button per place
