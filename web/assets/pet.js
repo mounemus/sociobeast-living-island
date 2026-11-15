@@ -57,7 +57,7 @@
   // the city's places: the hint shown while the creature stands there, and what it says on its first visit of the day.
   // Which actions a place offers is written on the buttons (data-at in play.html).
   const PLACE = {
-    seed:   { hint: 'Seed Plaza · the heart of the city', hello: 'The big seed is humming. Can you hear it?' },
+    seed:   { hint: 'Seed Plaza · tap a place, or the ground, to walk there', hello: 'The big seed is humming. Can you hear it?' },
     pulse:  { hint: 'Pulse Tower · a studio to make things', hello: 'A whole tower for making things! Can we try?' },
     bloom:  { hint: 'Bloom Gallery · the first exhibition is being hung', hello: 'The walls are still empty. One day, our pictures?' },
     market: { hint: 'Seed Market · the stalls are not open yet', hello: 'So many little stalls! Nothing to trade yet.' },
@@ -197,9 +197,11 @@
   // CITY — out of the nest: walk between the places; the first visit of the day to each one is a discovery
   // ─────────────────────────────────────────────────────────────
   function fade(fn) { const f = $('fade'); if (f.classList.contains('on')) return; f.classList.add('on'); setTimeout(function() { fn(); f.classList.remove('on'); }, 350); }
-  function enterCity() {
-    if (!P || P.stage === 0 || P.asleep || where !== 'home') return;
-    fade(function() { $('hud').classList.add('city'); $('talk').classList.add('hidden'); if (window.Cast) Cast.show(false); City.enter(arrive); });
+  // The game opens in the city (instant = no fade), egg included: it hatches on the plaza. An egg cannot walk, a sleeper stays in the nest.
+  function enterCity(instant) {
+    if (!P || P.asleep || where !== 'home') return;
+    const go = function() { $('hud').classList.add('city'); $('talk').classList.add('hidden'); if (window.Cast) Cast.show(false); City.enter(arrive, function() { return P.stage > 0 && !P.asleep; }); };
+    if (instant === true) go(); else fade(go);
   }
   function goHome() {
     if (where === 'home') return;
@@ -207,7 +209,7 @@
   }
   function arrive(id) { // id: the place it reached, or null when it sets off
     where = id || 'city'; lastActAt = Date.now();
-    if (id) {
+    if (id && P.stage > 0) {
       const d = dayKey(new Date()); if (P.visitDay !== d) { P.visitDay = d; P.visited = []; }
       if (P.visited.indexOf(id) < 0) { P.visited.push(id); if (reward('explore_new_zone').ok) { say(PLACE[id].hello, 5000); Creature.lookAround(); Creature.burstSparks(40, 0xc6a5f3, 2); } }
     }
@@ -299,7 +301,7 @@
       banner('<img src="assets/art/' + art + '.png" alt=""><div><b>' + esc(P.name) + '</b> ' + (st === 1 ? 'hatched' : 'evolved into <b>' + stage.name + '</b>') + '<span class="sub">' + esc(stage.intro) + '</span><span class="sub">' + esc(why) + '</span></div>', 'evolve art', 11000);
     }, 600);
     setTimeout(function() { speak(st === 1 ? 'hello' : 'evolve', 6000); Creature.spin(); Creature.dance(5); }, 1800);
-    if (st === 1) setTimeout(function() { pip('Feed it, play with it, talk to it. Then tap City: a whole plaza is waiting outside.'); }, 8000);
+    if (st === 1) setTimeout(function() { pip('Feed it, play with it, talk to it. It grows with your care.'); }, 8000);
     save();
   }
 
@@ -345,12 +347,12 @@
   function bar(id, v) { $(id).style.width = clamp(v, 0, 100) + '%'; }
   function cta() {
     const nx = nextStage(), left = nx ? Math.ceil(nx.xp - P.xp) : 0;
-    if (P.stage === 0) return ['Warm the egg · <b>' + Math.round(P.xp / STAGES[1].xp * 100) + '%</b> hatched · the city opens when it hatches', 'egg'];
+    if (P.stage === 0) return ['Warm the egg · <b>' + Math.round(P.xp / STAGES[1].xp * 100) + '%</b> hatched', 'egg'];
     if (P.asleep) return [esc(P.name) + ' is asleep · it wakes up rested', 'sleep'];
-    if (P.food < 30) return ['<b>Hungry!</b> Feed ' + esc(P.name), 'urgent'];
+    if (P.food < 30) return ['<b>Hungry!</b> ' + (where === 'home' || where === 'echo' ? 'Feed ' + esc(P.name) : 'Walk ' + esc(P.name) + ' to the Echo Garden to eat'), 'urgent'];
     if (P.energy < 22) return ['<b>Tired…</b> ' + (where === 'home' ? 'put ' + esc(P.name) + ' to sleep' : 'take ' + esc(P.name) + ' home to sleep'), ''];
     if (where !== 'home') return [where === 'city' ? 'Tap a place, or the ground, to walk there' : PLACE[where].hint, ''];
-    if (P.joy < 30) return ['<b>Bored…</b> play or talk', ''];
+    if (P.joy < 30) return ['<b>Bored…</b> ' + (where === 'home' || where === 'canopy' ? 'play or talk' : 'the Canopy Lounge is the place to play'), ''];
     if (nx && left <= Math.max(10, (nx.xp - STAGES[P.stage].xp) * 0.15)) return ['<b>' + left + ' XP</b> to ' + nx.name, 'evolve'];
     return [['Care for ' + esc(P.name) + ' and it grows', 'Each day you visit brings a small gift', nx ? left + ' XP to ' + nx.name : 'Final form'][Math.floor(Date.now() / 9000) % 3], ''];
   }
@@ -368,6 +370,7 @@
       b.classList.toggle('hidden', egg ? a !== 'warm' : a === 'warm' || !here);
       if (a !== 'sleep' && a !== 'warm' && a !== 'home') b.disabled = P.asleep; if (a === 'sleep') b.textContent = P.asleep ? 'Wake up' : 'Sleep';
     });
+    $('places').classList.toggle('hidden', where === 'home' || egg); // an egg does not walk: no place names yet
     const c = cta(), el = $('cta'); if (el.innerHTML !== c[0]) el.innerHTML = c[0]; el.className = c[1] + ($('talk').classList.contains('hidden') ? '' : ' hidden');
   }
   // the journal: the six traits, why each evolution happened, the latest rewarded events
@@ -411,7 +414,7 @@
   }
   function start() {
     P.stage = Evolution.stageOf(P.xp); Creature.setForms(SPECIES[P.species].models); Creature.setStage(P.stage, false); Creature.setVitals(P); mood = computeMood(); Creature.setMood(mood);
-    const gift = newDay(); renderHud(); setInterval(tick, 500);
+    const gift = newDay(); enterCity(true); renderHud(); setInterval(tick, 500);
     setTimeout(function() {
       if (P.stage === 0) say('Something is moving inside… keep it warm.', 6000);
       else speak(awayFor > H ? 'back' : mood === 'curious' ? 'hello' : mood, 5000);

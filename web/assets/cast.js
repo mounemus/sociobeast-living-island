@@ -105,14 +105,15 @@
   function react(who, kind) { const c = chars[who]; if (!c) return; if (who === 'pip') c.excite = kind === 'excited' ? 3 : 1; if (who === 'moss') c.nod = 1; }
 
   ready(function() {
-    buildPip(); buildMoss(); built = true;
+    buildPip(); buildMoss(); built = true; show(shown); // the game may have left for the city before the cast was built
     loadCastModel('pip', 'assets/models/char-pip.glb', 0.62, 0.35); loadCastModel('moss', 'assets/models/char-moss.glb', 0.95, -0.2);
     let last = performance.now();
     (function tick(now) { requestAnimationFrame(tick); const dt = Math.min(0.05, (now - last) / 1000); last = now; clockT += dt; update(dt, clockT); })(last);
   });
 
   // the cast lives at the nest: hidden while the creature is out in the city (play.html)
-  function show(on) { Object.keys(chars).forEach(function(k) { const c = chars[k]; c.g.visible = on; if (c.trail) c.trail.forEach(function(s) { s.visible = on; }); if (!on && $(c.bubble)) $(c.bubble).classList.add('hidden'); }); }
+  let shown = true;
+  function show(on) { shown = on; Object.keys(chars).forEach(function(k) { const c = chars[k]; c.g.visible = on; if (c.trail) c.trail.forEach(function(s) { s.visible = on; }); if (!on && $(c.bubble)) $(c.bubble).classList.add('hidden'); }); }
 
   window.Cast = { say: say, react: react, show: show, has: function(who) { return !!chars[who]; } };
 })();

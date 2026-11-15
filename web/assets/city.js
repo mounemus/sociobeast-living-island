@@ -4,7 +4,7 @@
  * Echo Garden south-west, Canopy Lounge west. The camera always looks north, from behind the creature. Everything is built from primitives in the Organic Future palette, on first entry.
  * The creature walks where the player taps (a place or the ground); each place also carries a real button above it, so the
  * city works with a keyboard. This file knows the space; what a place gives belongs to pet.js.
- * window.City = { enter(onArrive), leave(), goTo(id), active() } · onArrive(id) fires at a place, onArrive(null) when it sets off.
+ * window.City = { enter(onArrive, walkable), leave(), goTo(id), active() } · onArrive(id) fires at a place, onArrive(null) when it sets off.
  */
 (function() {
   'use strict';
@@ -22,7 +22,7 @@
   ];
   const WALK_R = 12.6, CORE_R = 4.7; // the walkable ring: inside the buildings, outside the fountain
   const GROUND = new T.Plane(new T.Vector3(0, 1, 0), 0);
-  let group = null, on = false, cb = null, hits = [], marker, anim = [], M = {};
+  let group = null, on = false, cb = null, canWalk = null, hits = [], marker, anim = [], M = {};
   const groups = {}; // place id → its group, facing the plaza
   let seedRand = 7; function rnd() { seedRand = (seedRand * 16807) % 2147483647; return seedRand / 2147483647; } // same city on every visit
 
@@ -46,7 +46,8 @@
       water: std(0x8fe3df, { roughness: 0.12, metalness: 0.25, emissive: col(0x6fdbd7), emissiveIntensity: 0.16 }),
       lilac: glow(0xc6a5f3, 0.55), aqua: glow(0x6fdbd7, 0.5), coral: std(0xffa6a3), pink: std(0xf9c0d7, { roughness: 0.85 }), cream: std(0xf7e9d9, { roughness: 0.7 }) };
     ground(); fountain(); pulse(); bloom(); market(); echo(); canopy(); trees(); skyline();
-    loadModel('bloom', 10.5, 0);
+    loadModel('bloom', 10.5); loadModel('pulse', 8.5); loadModel('market', 10.5); loadModel('canopy', 10.5);
+    loadModel('echo', 9, true); loadModel('seed', 7.6, true); // these two can stand between the camera and the creature: they fade
     PLACES.forEach(function(p) { // tap targets and name buttons
       const h = add(group, cyl(p.r, p.r, p.top, 12), new T.MeshBasicMaterial({ visible: false }), p.x, p.top / 2, p.z); h.userData.id = p.id; hits.push(h);
       const b = document.createElement('button'); b.type = 'button'; b.className = 'place'; b.textContent = p.label; b.addEventListener('click', function() { goTo(p.id); }); $('places').appendChild(b); p.el = b;
@@ -57,15 +58,17 @@
   }
   // Optional textured building of a place: assets/models/city-<id>.glb, made from a concept image like the creatures
   // (assets/art/city-<id>.png → image_to_3d). When the file exists it replaces that place's primitives; a missing file keeps them.
-  // width: its footprint in the plaza's units · yaw: extra turn if the model's front is not +z.
-  function loadModel(id, width, yaw) {
+  // width: its footprint in the plaza's units · fade: it turns transparent when the camera comes close (see fountain()).
+  function loadModel(id, width, fade) {
     if (!T.GLTFLoader) return;
     new T.GLTFLoader().load('assets/models/city-' + id + '.glb', function(gltf) {
-      const obj = gltf.scene, g = groups[id], box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3());
-      obj.scale.setScalar(width / Math.max(size.x, size.z)); obj.rotation.y = yaw || 0; box.setFromObject(obj);
+      const obj = gltf.scene, g = groups[id], p = PLACES.filter(function(q) { return q.id === id; })[0], box = new T.Box3().setFromObject(obj), size = box.getSize(new T.Vector3());
+      obj.scale.setScalar(width / Math.max(size.x, size.z)); box.setFromObject(obj);
       const c = box.getCenter(new T.Vector3()); obj.position.set(-c.x, -box.min.y, -c.z);
-      g.children.forEach(function(ch) { ch.visible = false; }); g.add(obj);
-      PLACES.filter(function(q) { return q.id === id; })[0].top = box.max.y - box.min.y + 0.4; // the name sits just above the roof
+      g.children.forEach(function(ch) { ch.visible = false; }); g.userData.model = true; g.add(obj);
+      p.top = box.max.y - box.min.y + 0.4; // the name sits just above the roof
+      if (fade) { const mats = []; obj.traverse(function(o) { if (o.isMesh) { o.material.transparent = true; mats.push(o.material); } });
+        anim.push(function() { const cam = Creature.cameraPos(), k = Math.max(0, Math.min(1, (Math.hypot(cam.x - p.x, cam.z - p.z) - 7) / 4)); obj.visible = k > 0.02; mats.forEach(function(m) { m.opacity = k; }); }); }
     }, undefined, function() {});
   }
   function ground() {
@@ -76,7 +79,7 @@
     PLACES.slice(1).forEach(function(p) { const m = flat(group, new T.CircleGeometry(1.5, 28), M.pearl, 0.016); m.position.set(p.door[0], 0.016, p.door[1]); }); // a doorstep in front of each place
   }
   function fountain() { // the seed: a bud of opal resin over a round basin
-    const g = new T.Group(); group.add(g);
+    const g = groups.seed = new T.Group(); group.add(g);
     add(g, cyl(3.4, 3.7, 0.6, 40), M.pearl, 0, 0.3, 0); add(g, cyl(3.05, 3.05, 0.1, 40), M.water, 0, 0.62, 0); add(g, cyl(0.35, 0.7, 1.7), M.pearl, 0, 1.45, 0);
     // the bud has its own materials: it fades out when the camera comes close, so it never hides a creature standing north of it
     const top = new T.Group(); g.add(top); const own = [M.pink.clone(), M.glass.clone(), M.lilac.clone()], full = own.map(function(m) { m.transparent = true; return m.opacity; });
@@ -84,6 +87,7 @@
     const seed = add(top, sph(1.1), own[2], 0, 3.7, 0, 1, 1.45, 1);
     const halo = new T.Sprite(new T.SpriteMaterial({ map: Creature.dotTexture(), color: col(0xc6a5f3), transparent: true, opacity: 0.4, depthWrite: false })); halo.scale.setScalar(6.5); halo.position.y = 3.7; top.add(halo);
     anim.push(function(t) {
+      if (g.userData.model) return; // the textured fountain took over
       const cam = Creature.cameraPos(), k = Math.max(0, Math.min(1, (Math.hypot(cam.x, cam.z) - 7) / 4));
       top.visible = k > 0.02; own.forEach(function(m, i) { m.opacity = full[i] * k; });
       seed.position.y = 3.7 + Math.sin(t * 1.2) * 0.14; seed.rotation.y = t * 0.3; halo.material.opacity = (0.34 + Math.sin(t * 1.2) * 0.08) * k;
@@ -169,12 +173,12 @@
   function clampWalk(x, z) { let d = Math.hypot(x, z); if (d < 0.01) { x = 0; z = 1; d = 1; } const k = Math.max(CORE_R + 0.6, Math.min(WALK_R, d)) / d; return { x: x * k, z: z * k }; }
   function mark(id) { PLACES.forEach(function(p) { p.el.classList.toggle('on', p.id === id); }); }
   function goTo(id) {
-    const p = PLACES.filter(function(q) { return q.id === id; })[0]; if (!on || !p) return;
+    const p = PLACES.filter(function(q) { return q.id === id; })[0]; if (!on || !p || (canWalk && !canWalk())) return;
     marker.visible = false; mark(null); if (cb) cb(null);
     Creature.goTo(route({ x: p.door[0], z: p.door[1] }), function() { mark(id); if (cb) cb(id); });
   }
   function tap(e) {
-    if (!on) return;
+    if (!on || (canWalk && !canWalk())) return;
     const r = Creature.ray(e.clientX, e.clientY), hit = r.intersectObjects(hits)[0]; if (hit) return goTo(hit.object.userData.id);
     const p = r.ray.intersectPlane(GROUND, new T.Vector3()); if (!p) return;
     const c = clampWalk(p.x, p.z); marker.position.set(c.x, 0.03, c.z); marker.visible = true; mark(null); if (cb) cb(null);
@@ -192,9 +196,10 @@
       p.el.style.transform = 'translate(-50%, -100%) translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)'; });
   }
 
-  function enter(onArrive) {
+  // onArrive(id | null): see the header · walkable(): false while the creature cannot walk (an egg)
+  function enter(onArrive, walkable) {
     if (!group) build();
-    on = true; cb = onArrive || null; group.visible = true; $('places').classList.remove('hidden');
+    on = true; cb = onArrive || null; canWalk = walkable || null; group.visible = true; $('places').classList.remove('hidden');
     Creature.setView('city'); Creature.standAt(PLACES[0].door[0], PLACES[0].door[1]); mark('seed'); requestAnimationFrame(frame);
     if (cb) cb('seed');
   }
