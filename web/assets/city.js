@@ -148,15 +148,39 @@
       for (let j = 0; j < 3; j++) { const r = 1.0 + rnd() * 0.6; o.position.set(s[0] + (rnd() - 0.5) * 1.4, h + 0.4 + rnd() * 0.8, s[1] + (rnd() - 0.5) * 1.4); o.scale.set(r, r * 0.8, r); o.updateMatrix(); blobs.setMatrixAt(i * 3 + j, o.matrix); blobs.setColorAt(i * 3 + j, tints[(i + j) % 3]); }
     });
     trunks.frustumCulled = blobs.frustumCulled = false; group.add(trunks); group.add(blobs);
+    scatter('city-tree', spots.filter(function(s, i) { return !LOW || i % 2 === 0; }).map(function(s, i) { return [s[0], 0, s[1], 4.6 + (i * 7 % 5) * 0.35, i * 2.4]; }), [trunks, blobs]);
   }
   function skyline() { // towers in the haze and two floating gardens, for depth
-    const tower = cyl(0.55, 1, 1, 14), cap = sph(1);
+    const tower = cyl(0.55, 1, 1, 14), cap = sph(1), old = [], floats = [[-22, 15, -34, 4], [26, 19, -44, 5]];
     for (let i = 0; i < 13; i++) { const a = -Math.PI * (0.06 + i / 12 * 0.88) + (rnd() - 0.5) * 0.1, r = 44 + rnd() * 30, h = 12 + rnd() * 22, w = 1.6 + rnd() * 1.6;
-      add(group, tower, i % 3 ? M.haze : M.pearl, Math.cos(a) * r, h / 2 - 0.4, Math.sin(a) * r, w, h, w); add(group, cap, i % 2 ? M.glass : M.lilac, Math.cos(a) * r, h - 0.2, Math.sin(a) * r, w * 0.75, w, w * 0.75); }
-    [[-22, 15, -34, 4], [26, 19, -44, 5]].forEach(function(f, i) { const g = new T.Group(); g.position.set(f[0], f[1], f[2]); group.add(g);
+      old.push(add(group, tower, i % 3 ? M.haze : M.pearl, Math.cos(a) * r, h / 2 - 0.4, Math.sin(a) * r, w, h, w), add(group, cap, i % 2 ? M.glass : M.lilac, Math.cos(a) * r, h - 0.2, Math.sin(a) * r, w * 0.75, w, w * 0.75)); }
+    floats.forEach(function(f, i) { const g = new T.Group(); g.position.set(f[0], f[1], f[2]); group.add(g); old.push(g);
       add(g, sph(f[3]), M.moss, 0, 0, 0, 1, 0.3, 1); const c = add(g, new T.ConeGeometry(f[3] * 0.8, f[3] * 1.1, 12), M.haze, 0, -f[3] * 0.62, 0); c.rotation.x = Math.PI;
       add(g, dome(f[3] * 0.45), M.pearl, 0, f[3] * 0.2, 0); add(g, sph(f[3] * 0.3), M.pink, f[3] * 0.5, f[3] * 0.45, 0.4);
       anim.push(function(t) { g.position.y = f[1] + Math.sin(t * 0.4 + i * 2) * 0.5; }); });
+    // the textured version is one model, an island of towers (assets/art/city-isle.png): the two gardens float, the others stand
+    // in the lagoon with their rock under the water, facing the plaza
+    const isles = floats.map(function(f, i) { return [f[0], f[1] - f[3] * 1.1, f[2], f[3] * 2.8, i ? -0.4 : 0.4]; }), n = LOW ? 4 : 7;
+    for (let i = 0; i < n; i++) { const a = -Math.PI * (0.1 + i / (n - 1) * 0.8), r = 46 + (i * 5 % 3) * 9, h = 28 + (i * 3 % 4) * 5; isles.push([Math.cos(a) * r, -h * 0.34, Math.sin(a) * r, h, (i % 3 - 1) * 0.5]); }
+    scatter('city-isle', isles, old, floats.length);
+  }
+  // One model repeated at many spots: an InstancedMesh per mesh of the file (a generated model is one mesh, so one draw call).
+  // spots: [x, y, z, height, yaw] · old: the primitives it replaces, hidden once the file is there (a missing file keeps them)
+  // bob: the first `bob` spots float up and down.
+  function scatter(file, spots, old, bob) {
+    if (!T.GLTFLoader) return;
+    Creature.loader().load('assets/models/' + file + '.glb', function(gltf) {
+      const obj = gltf.scene; obj.updateMatrixWorld(true);
+      const box = new T.Box3().setFromObject(obj), c = box.getCenter(new T.Vector3()), k = 1 / Math.max(0.001, box.max.y - box.min.y);
+      const norm = new T.Matrix4().makeScale(k, k, k).multiply(new T.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z)); // 1 unit tall, standing on the origin
+      const o = new T.Object3D(), ims = [];
+      const put = function(im, i, dy) { const s = spots[i]; o.position.set(s[0], s[1] + dy, s[2]); o.rotation.set(0, s[4], 0); o.scale.setScalar(s[3]); o.updateMatrix(); im.setMatrixAt(i, o.matrix.multiply(norm).multiply(im.userData.local)); };
+      obj.traverse(function(m) { if (!m.isMesh) return;
+        const im = new T.InstancedMesh(m.geometry, m.material, spots.length); im.userData.local = m.matrixWorld.clone(); im.frustumCulled = false;
+        for (let i = 0; i < spots.length; i++) put(im, i, 0); group.add(im); ims.push(im); });
+      old.forEach(function(x) { x.visible = false; });
+      if (bob && CALM) anim.push(function(t) { ims.forEach(function(im) { for (let i = 0; i < bob; i++) put(im, i, Math.sin(t * 0.4 + i * 2) * 0.5); im.instanceMatrix.needsUpdate = true; }); });
+    }, undefined, function() {});
   }
 
   // ─────────────────────────────────────────────────────────────

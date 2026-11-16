@@ -44,6 +44,9 @@ web/assets/city.js        (state on 2026-11-14 night) play.html OPENS in this ci
                           textured model assets/models/city-<id>.glb (bloom, pulse, market, canopy, echo, seed; source image
                           assets/art/city-<id>.png, made like the creatures), loaded by loadModel(id, width, fade); a missing file keeps
                           the primitives below. Residents: one creature of every other species strolls and greets (spawnResidents).
+                          Trees and far scenery (2026-11-15): scatter(file, spots, old, bob) repeats one model as an InstancedMesh —
+                          city-tree.glb on the rim, city-isle.glb (an island of towers) as the two floating gardens and, sunk to
+                          its grass in the lagoon, as the skyline. Only the ground is still primitives.
 web/assets/city.js        the daylight plaza of the online game (2026-11-14): Seed Plaza + Pulse Tower (Create), Bloom Gallery, Seed Market,
                           Echo Garden (Feed, Cuddle), Canopy Lounge (Play), built from primitives on first entry, palette given in sRGB
                           (col()). Tap a place or the ground to walk (one side step around the fountain), a name button per place
