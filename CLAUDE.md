@@ -44,6 +44,8 @@ web/assets/city.js        (state on 2026-11-14 night) play.html OPENS in this ci
                           textured model assets/models/city-<id>.glb (bloom, pulse, market, canopy, echo, seed; source image
                           assets/art/city-<id>.png, made like the creatures), loaded by loadModel(id, width, fade); a missing file keeps
                           the primitives below. Residents: one creature of every other species strolls and greets (spawnResidents).
+                          A greeting calls opts.onMeet(name): pet.js meet() waves back and applies meet_resident (sociability,
+                          cooldown 20 s, 6 a day — rules in evolution.js); an egg or a sleeper does not answer.
                           Trees and far scenery (2026-11-15): scatter(file, spots, old, bob) repeats one model as an InstancedMesh —
                           city-tree.glb on the rim, city-isle.glb (an island of towers) as the two floating gardens and, sunk to
                           its grass in the lagoon, as the skyline. Ground and water (2026-11-16) are painted on canvases, nothing

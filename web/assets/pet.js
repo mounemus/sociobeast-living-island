@@ -49,7 +49,7 @@
   ].map(function(s, i) { s.xp = XP[i]; return s; });
   const TRAIT = { creativity: 'Creativity', sociability: 'Sociability', curiosity: 'Curiosity', energy: 'Vitality', empathy: 'Empathy', expression: 'Expression' };
   const EVENT = { warm_egg: ['warm-up', 'warm-ups'], care_action: ['meal', 'meals'], play: ['game', 'games'], cuddle: ['cuddle', 'cuddles'], talk: ['talk', 'talks'],
-    complete_creation: ['creation', 'creations'], explore_new_zone: ['discovery', 'discoveries'], join_coop_quest: ['quest', 'quests'], daily_return: ['daily gift', 'daily gifts'] };
+    complete_creation: ['creation', 'creations'], explore_new_zone: ['discovery', 'discoveries'], join_coop_quest: ['quest', 'quests'], meet_resident: ['meeting', 'meetings'], daily_return: ['daily gift', 'daily gifts'] };
   const H = 3600;
   const RATE = { food: 100 / (8 * H), joy: 100 / (10 * H), energy: 100 / (14 * H), sleepRegen: 100 / (2 * H) }; // per second
   const SLEEP_AT = 5, WAKE_AT = 96, AWAY_CAP = 24 * H, LONELY_AFTER = 180, FLOOR = 20; // FLOOR: food and joy never sink lower, however long the player is away
@@ -142,7 +142,8 @@
     wake: ['*blink* …oh! Good morning, {owner}.', 'I am up! I am up!'],
     sleep: ['Good night. Dream of me. I will dream of you.', 'The nest is warm. Sleeping now…'],
     back: ['{owner}! You came back! I saved you a firefly.', 'Welcome back {owner}. I kept the nest warm.'],
-    hello: ['Hi {owner}! It is me, {name}.', 'There you are, {owner}.']
+    hello: ['Hi {owner}! It is me, {name}.', 'There you are, {owner}.'],
+    meet: ['Hi {friend}!', 'Hello {friend}! Lovely day.', '{friend}! Want to play later?', 'Oh, {friend}! I like it here.']
   };
   function line(kind) { return pick(LINES[kind] || LINES.curious).replace(/\{owner\}/g, P.owner || 'friend').replace(/\{name\}/g, P.name); }
   function say(text, ms) {
@@ -202,12 +203,19 @@
   // The game opens in the city (instant = no fade), egg included: it hatches on the plaza. An egg cannot walk, a sleeper stays in the nest.
   function enterCity(instant) {
     if (!P || P.asleep || where !== 'home') return;
-    const go = function() { $('hud').classList.add('city'); $('talk').classList.add('hidden'); if (window.Cast) Cast.show(false); City.enter(arrive, function() { return P.stage > 0 && !P.asleep; }, { name: P.name, residents: residents() }); };
+    const go = function() { $('hud').classList.add('city'); $('talk').classList.add('hidden'); if (window.Cast) Cast.show(false); City.enter(arrive, function() { return P.stage > 0 && !P.asleep; }, { name: P.name, residents: residents(), onMeet: meet }); };
     if (instant === true) go(); else fade(go);
   }
   function goHome() {
     if (where === 'home') return;
     fade(function() { where = 'home'; $('hud').classList.remove('city'); City.leave(); if (window.Cast) Cast.show(true); renderHud(); });
+  }
+  // A resident said hello: the creature waves back. The first meetings of the day count (sociability, capped by the rules);
+  // after that it is still polite, it just earns nothing. An egg cannot answer.
+  function meet(name) {
+    if (!P || P.stage === 0 || P.asleep) return;
+    Creature.wave();
+    if (reward('meet_resident').ok) { P.joy = clamp(P.joy + 3, 0, 100); Creature.burstHearts(5); setTimeout(function() { say(pick(LINES.meet).replace('{friend}', name), 3500); }, 1300); renderHud(); }
   }
   function arrive(id) { // id: the place it reached, or null when it sets off
     where = id || 'city'; lastActAt = Date.now();

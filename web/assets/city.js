@@ -268,7 +268,7 @@
   // (two with ?q=low). Other players replace them when the city goes real-time.
   const LOW = /[?&]q=low\b/.test(location.search);
   const HELLO = ['Hi {n}!', 'Lovely day on the plaza, {n}.', 'Have you seen the fountain glow?', 'The gallery smells like fresh paint.', 'Race you to the market!', 'I like your style, {n}.', 'The garden pond is warm today.'];
-  let residents = [], npcBubble = null, speaker = null, lastFrame = 0, playerName = '';
+  let residents = [], npcBubble = null, speaker = null, lastFrame = 0, playerName = '', onMeet = null;
   function spawnResidents(list) {
     npcBubble = document.createElement('div'); npcBubble.className = 'bubble npc hidden'; $('hud').appendChild(npcBubble);
     (list || []).slice(0, LOW ? 2 : 5).forEach(function(r, i) {
@@ -290,7 +290,9 @@
   }
   function greet(r) {
     speaker = r; npcBubble.dataset.who = r.name; npcBubble.textContent = HELLO[Math.floor(Math.random() * HELLO.length)].replace('{n}', playerName || 'friend');
-    anchorBubble(); npcBubble.classList.remove('hidden'); npcBubble.classList.remove('pop'); // placed before it shows: no flash in the corner void npcBubble.offsetWidth; npcBubble.classList.add('pop');
+    anchorBubble(); // placed before it shows: no flash in the corner
+    npcBubble.classList.remove('hidden'); npcBubble.classList.remove('pop'); void npcBubble.offsetWidth; npcBubble.classList.add('pop');
+    if (onMeet) onMeet(r.name);
     clearTimeout(npcBubble._t); npcBubble._t = setTimeout(function() { npcBubble.classList.add('hidden'); speaker = null; }, 3600);
   }
   function updateResidents(dt, t) {
@@ -332,10 +334,10 @@
   }
 
   // onArrive(id | null): see the header · walkable(): false while the creature cannot walk (an egg)
-  // opts: { name: the player's creature, residents: [{ name, model }] } — the residents are created on the first entry
+  // opts: { name: the player's creature, residents: [{ name, model }], onMeet(name): a resident just said hello } — the residents are created on the first entry
   function enter(onArrive, walkable, opts) {
     if (!group) { build(); spawnResidents(opts && opts.residents); }
-    playerName = (opts && opts.name) || playerName; lastFrame = 0;
+    playerName = (opts && opts.name) || playerName; onMeet = (opts && opts.onMeet) || null; lastFrame = 0;
     on = true; cb = onArrive || null; canWalk = walkable || null; group.visible = true; $('places').classList.remove('hidden');
     Creature.setView('city'); Creature.standAt(PLACES[0].door[0], PLACES[0].door[1]); mark('seed'); requestAnimationFrame(frame);
     if (cb) cb('seed');
