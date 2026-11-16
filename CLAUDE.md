@@ -27,6 +27,9 @@ web/assets/pet.js         the game around it (SPECIES, STAGES names, RATE): need
                           ({text, remember}). Every gain is reward(type) → Evolution.apply; the AI voice never grants anything.
                           Save: localStorage 'sociobeast.pet.v1' (v2 = engine state merged in; v1 saves are migrated on load).
                           window.Pet = { state, mood, act, talk, check, reset }; Pet.check() self-tests the needs clock and the engine.
+                          Missions (2026-11-16): three a day, drawn from the date by missions(day); progress = today's count of an
+                          event type in the engine (P.counts), reward = one complete_mission event each (12 XP, 3 a day). Shown
+                          on the line under the XP bar (#h-mission) and at the top of the journal; P.missionDay / P.missionDone.
                           `where` = 'home' | 'city' | a place id; each action button lists where it shows (data-at in play.html);
                           the first visit of the day to a place = explore_new_zone. ?q=low = low graphics (creature.js).
 web/assets/cloud.js       accounts and online save of the online game on Firebase (2026-11-14): sign-in by emailed link (Firebase

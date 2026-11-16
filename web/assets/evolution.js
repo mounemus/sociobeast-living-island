@@ -9,7 +9,7 @@
 (function() {
   'use strict';
   const RULES = {
-    version: 'prototype-0.4',
+    version: 'prototype-0.5',
     traits: ['creativity', 'sociability', 'curiosity', 'energy', 'empathy', 'expression'],
     stageXp: [0, 50, 150, 350, 700, 1200, 2000], // cumulated XP of the 7 stages; prototype balance, to calibrate
     // cooldown: seconds between two rewarded events of a type · daily: rewarded events per day · onlyStage: valid at that stage only.
@@ -24,6 +24,7 @@
       explore_new_zone:  { xp: 7,  traits: { curiosity: 2 },   cooldown: 2,  daily: 6 }, // first visit of the day to each place of the city
       join_coop_quest:   { xp: 8,  traits: { sociability: 1 }, cooldown: 60, daily: 3 },
       meet_resident:     { xp: 3,  traits: { sociability: 1 }, cooldown: 20, daily: 6 }, // a resident of the plaza says hello and the creature answers
+      complete_mission:  { xp: 12, traits: {},                 daily: 3 },  // one of the day's three small goals (pet.js draws them and reads their progress here)
       daily_return:      { xp: 20, traits: {},                 daily: 1 }
     }
   };
@@ -79,6 +80,8 @@
     ok.push(got === 10 && apply(d, ev(20, 'talk', 'd')).reason === 'daily_cap' && apply(d, ev(21, 'talk', 'e')).ok); // daily cap, lifted the next day
     const m = fresh(); let met = 0; for (let i = 0; i < 9; i++) if (apply(m, ev(i, 'meet_resident', 'd')).ok) met++;
     ok.push(met === 6 && m.traits.sociability === 6 && m.xp === 18 && apply(fresh(), ev(0, 'meet_resident', 'd', T0)).ok && (function(s) { apply(s, ev(0, 'meet_resident', 'd', T0)); return apply(s, ev(1, 'meet_resident', 'd', T0 + 5000)).reason === 'cooldown'; })(fresh())); // meetings: capped per day, not farmable
+    const q = fresh(); let paid = 0; for (let i = 0; i < 5; i++) if (apply(q, ev(i, 'complete_mission', 'd')).ok) paid++;
+    ok.push(paid === 3 && q.xp === 36 && q.counts.complete_mission === 3);                               // three missions a day, never a fourth
     const t = fresh(); for (let i = 0; i < 200; i++) apply(t, ev(i, 'complete_creation'));
     ok.push(t.traits.creativity === 100 && t.stage === 6 && t.xp === 2000 && t.seen.length === KEEP && t.journal.length === KEEP && t.evolutions.length === 6); // bounds
     const log = []; for (let i = 0; i < 40; i++) log.push(ev(i, ['care_action', 'play', 'talk', 'explore_new_zone'][i % 4], 'd' + (i >> 3)));

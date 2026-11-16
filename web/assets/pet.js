@@ -49,7 +49,7 @@
   ].map(function(s, i) { s.xp = XP[i]; return s; });
   const TRAIT = { creativity: 'Creativity', sociability: 'Sociability', curiosity: 'Curiosity', energy: 'Vitality', empathy: 'Empathy', expression: 'Expression' };
   const EVENT = { warm_egg: ['warm-up', 'warm-ups'], care_action: ['meal', 'meals'], play: ['game', 'games'], cuddle: ['cuddle', 'cuddles'], talk: ['talk', 'talks'],
-    complete_creation: ['creation', 'creations'], explore_new_zone: ['discovery', 'discoveries'], join_coop_quest: ['quest', 'quests'], meet_resident: ['meeting', 'meetings'], daily_return: ['daily gift', 'daily gifts'] };
+    complete_creation: ['creation', 'creations'], explore_new_zone: ['discovery', 'discoveries'], join_coop_quest: ['quest', 'quests'], meet_resident: ['meeting', 'meetings'], complete_mission: ['mission', 'missions'], daily_return: ['daily gift', 'daily gifts'] };
   const H = 3600;
   const RATE = { food: 100 / (8 * H), joy: 100 / (10 * H), energy: 100 / (14 * H), sleepRegen: 100 / (2 * H) }; // per second
   const SLEEP_AT = 5, WAKE_AT = 96, AWAY_CAP = 24 * H, LONELY_AFTER = 180, FLOOR = 20; // FLOOR: food and joy never sink lower, however long the player is away
@@ -164,7 +164,31 @@
   function reward(type) {
     const now = Date.now(), r = Evolution.apply(P, { key: now + '-' + (++seq), type: type, at: now, day: dayKey(new Date(now)) });
     if (r.evolved) evolve(P.stage);
+    if (r.ok && type !== 'complete_mission') checkMissions();
     return r;
+  }
+  // MISSIONS: three small goals a day, drawn from the date (the same three for everyone, nothing to store but which are done).
+  // Their progress is read from the rules engine, the number of rewarded events of a type today: a mission cannot be faked,
+  // and its reward is an event like any other (three a day at most). A missed day costs nothing.
+  const MISSIONS = [
+    { type: 'explore_new_zone', n: 3, text: 'Visit three places' }, { type: 'meet_resident', n: 2, text: 'Say hello to two residents' },
+    { type: 'care_action', n: 1, text: 'Share a meal at the Echo Garden' }, { type: 'play', n: 2, text: 'Play twice at the Canopy Lounge' },
+    { type: 'cuddle', n: 2, text: 'Give two cuddles' }, { type: 'complete_creation', n: 1, text: 'Create something at the Pulse Tower' },
+    { type: 'talk', n: 2, text: 'Have two talks' }];
+  function missions(day) { let h = 0; for (let i = 0; i < day.length; i++) h += day.charCodeAt(i); return [0, 1, 2].map(function(k) { return MISSIONS[(h + k * 3) % MISSIONS.length]; }); } // 3 and 7 share no factor: three different ones
+  function missionState() { // today's three: { type, text, n, have, done }
+    const d = dayKey(new Date()), done = P.missionDay === d ? P.missionDone : [];
+    return missions(d).map(function(m) { return { type: m.type, text: m.text, n: m.n, have: Math.min(m.n, P.day === d ? (P.counts[m.type] || 0) : 0), done: done.indexOf(m.type) >= 0 }; });
+  }
+  function checkMissions() {
+    if (P.stage === 0) return;
+    const d = dayKey(new Date()); if (P.missionDay !== d) { P.missionDay = d; P.missionDone = []; }
+    missionState().forEach(function(m) {
+      if (m.have < m.n || m.done) return;
+      P.missionDone.push(m.type); // marked first: whatever the engine answers, it is never asked twice for the same mission
+      const r = reward('complete_mission'); if (!r.ok) return;
+      banner('<b>Mission done</b> ' + esc(m.text) + '<span class="sub">+' + r.xp + ' XP · ' + P.missionDone.length + ' of 3 today</span>', '', 5000); Creature.burstSparks(50, 0x7cc9a4, 3); Creature.hop(1);
+    });
   }
   function bond(n) { P.bond = clamp(P.bond + n, 0, 100); }
   let lastCuddleAt = 0;
@@ -371,6 +395,8 @@
     $('h-name').textContent = P.name; $('h-stage').textContent = st.name;
     $('h-mood').textContent = egg ? '' : mood; $('h-streak').textContent = P.streak > 1 ? P.streak + ' days' : ''; $('h-bond').textContent = egg ? '' : 'bond ' + Math.floor(P.bond);
     bar('h-xp', nx ? (P.xp - st.xp) / (nx.xp - st.xp) * 100 : 100);
+    const ms = egg ? [] : missionState(), todo = ms.filter(function(m) { return !m.done; });
+    $('h-mission').textContent = egg ? '' : 'Missions ' + (ms.length - todo.length) + '/3 · ' + (todo[0] ? todo[0].text : 'all done, see you tomorrow'); // the count of each one is in the journal: this line must fit a phone
     $('h-xp-txt').textContent = nx ? Math.floor(P.xp) + ' / ' + nx.xp + ' XP → ' + nx.name : 'Final form · ' + Math.floor(P.xp) + ' XP';
     bar('h-food', P.food); bar('h-joy', P.joy); bar('h-energy', P.energy);
     $('h-vitals').className = 'panel ' + (egg ? 'egg' : '');
@@ -388,6 +414,7 @@
     if (!P) return;
     const li = function(a, empty) { return a.join('') || '<li class="sub">' + empty + '</li>'; };
     $('j-title').textContent = 'Why ' + P.name + ' is who it is';
+    $('j-missions').innerHTML = li(P.stage === 0 ? [] : missionState().map(function(m) { return '<li' + (m.done ? ' class="done"' : '') + '><b>' + (m.done ? 'Done' : m.have + '/' + m.n) + '</b> ' + esc(m.text) + '</li>'; }), 'Missions start once it hatches.');
     $('j-traits').innerHTML = Evolution.RULES.traits.map(function(t) { return '<div class="trait t-' + t + '"><span>' + TRAIT[t] + '</span><div class="bar"><div style="width:' + P.traits[t] + '%"></div></div><span class="num">' + P.traits[t] + '</span></div>'; }).join('');
     $('j-evo').innerHTML = li(P.evolutions.slice().reverse().map(function(e) { return '<li><b>' + STAGES[e.stage].name + '</b> at ' + e.xp + ' XP<span class="sub">' + esc(cause(e)) + '</span></li>'; }), 'Still an egg. Warmth makes it hatch.');
     $('j-log').innerHTML = li(P.journal.slice(-12).reverse().map(function(l) {
@@ -440,7 +467,7 @@
       else act(b.dataset.act);
     });
     $('talk').addEventListener('submit', function(e) { e.preventDefault(); const i = $('talk-in'); talk(i.value); i.value = ''; });
-    $('h-why').addEventListener('click', showJournal); $('j-close').addEventListener('click', hideJournal);
+    $('h-why').addEventListener('click', showJournal); $('h-mission').addEventListener('click', showJournal); $('j-close').addEventListener('click', hideJournal);
     $('journal').addEventListener('click', function(e) { if (e.target === this) hideJournal(); });
     addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideJournal(); hideAccount(); } });
     if (Cloud.on) { // accounts are configured: offer the online save, also from the picker (a returning player on a new device)
@@ -464,6 +491,8 @@
       Math.abs(a.food - 50) < 0.01 && !a.asleep, !b.asleep && b.energy > 85 && b.energy < 96, c.food === 50, d.food === FLOOR && d.joy === FLOOR && d.energy >= SLEEP_AT - 0.01,
       Object.keys(SPECIES).every(function(k) { const s = SPECIES[k]; return s.art.length === STAGES.length && (!s.models || s.models.length === STAGES.length); }), // every species covers every stage
       Object.keys(Evolution.RULES.events).every(function(k) { return EVENT[k]; }) && Evolution.RULES.traits.every(function(t) { return TRAIT[t]; }), Evolution.check(),
+      ['2026-11-16', '2026-11-17', '2026-12-31', '2027-01-01', '2027-02-28'].every(function(day) { const m = missions(day), ev = Evolution.RULES.events; // every day: three different missions, each within its event's daily limit
+        return m[0].type !== m[1].type && m[1].type !== m[2].type && m[0].type !== m[2].type && m.every(function(x) { return ev[x.type] && x.n <= (ev[x.type].daily || 99); }); }),
       [].every.call(document.querySelectorAll('#actions .act'), function(b) { return b.dataset.act === 'warm' || (b.dataset.at || '').split(' ').every(function(w) { return w === 'home' || w === 'city' || PLACE[w]; }); })]; // every button names real places
     console.assert(ok.every(Boolean), 'Pet.check failed', ok, a, b, c, d); return ok.every(Boolean);
   }

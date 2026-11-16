@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
     <link rel="stylesheet" href="assets/beast.css?v=22">
-    <link rel="stylesheet" href="assets/play.css?v=7">
+    <link rel="stylesheet" href="assets/play.css?v=8">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
 </head>
 <body>
@@ -21,7 +21,7 @@
     <div id="hud">
         <div id="top">
             <div id="h-title" class="row"><span><span id="h-name"></span><span id="h-stage"></span></span><span class="r"><span id="h-mood"></span><span id="h-bond"></span><span id="h-streak"></span><button type="button" id="h-why" class="chip">Journal</button><button type="button" id="h-acct" class="chip hidden">Save online</button></span></div>
-            <div><div class="bar"><div id="h-xp"></div></div><div id="h-xp-txt" class="num"></div></div>
+            <div><div class="bar"><div id="h-xp"></div></div><div class="row"><button type="button" id="h-mission" title="Today's missions"></button><div id="h-xp-txt" class="num"></div></div></div>
             <div id="h-vitals" class="panel">
                 <div class="vital" id="v-food"><div class="row"><span>Food</span></div><div class="bar"><div id="h-food"></div></div></div>
                 <div class="vital" id="v-joy"><div class="row"><span>Joy</span></div><div class="bar"><div id="h-joy"></div></div></div>
@@ -55,6 +55,7 @@
             <div class="panel">
                 <div class="row"><h2 id="j-title"></h2><button type="button" class="act" id="j-close">Close</button></div>
                 <p>Each action earns XP and shapes a trait, up to a gentle daily limit. Your creature never fades while you are away.</p>
+                <div class="label">Today's missions · +12 XP each</div><ol id="j-missions"></ol>
                 <div id="j-traits"></div>
                 <div class="label">Evolutions</div><ol id="j-evo"></ol>
                 <div class="label">Latest</div><ol id="j-log"></ol>
@@ -91,7 +92,7 @@
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'loaders/DRACOLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
-          .then(function() { return loadSeq(['assets/creature.js?v=27', 'assets/cast.js?v=25', 'assets/city.js?v=10', 'assets/evolution.js?v=3', 'assets/cloud.js?v=2', 'assets/pet.js?v=10']); })
+          .then(function() { return loadSeq(['assets/creature.js?v=27', 'assets/cast.js?v=25', 'assets/city.js?v=10', 'assets/evolution.js?v=4', 'assets/cloud.js?v=2', 'assets/pet.js?v=12']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>
