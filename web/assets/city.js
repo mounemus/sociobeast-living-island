@@ -48,6 +48,7 @@
     ground(); fountain(); pulse(); bloom(); market(); echo(); canopy(); trees(); skyline();
     loadModel('bloom', 10.5); loadModel('pulse', 8.5); loadModel('market', 10.5); loadModel('canopy', 10.5);
     loadModel('echo', 9, true); loadModel('seed', 7.6, true); // these two can stand between the camera and the creature: they fade
+    spray();
     PLACES.forEach(function(p) { // tap targets and name buttons
       const h = add(group, cyl(p.r, p.r, p.top, 12), new T.MeshBasicMaterial({ visible: false }), p.x, p.top / 2, p.z); h.userData.id = p.id; hits.push(h);
       const b = document.createElement('button'); b.type = 'button'; b.className = 'place'; b.textContent = p.label; b.addEventListener('click', function() { goTo(p.id); }); $('places').appendChild(b); p.el = b;
@@ -71,9 +72,61 @@
         anim.push(function() { const cam = Creature.cameraPos(), k = Math.max(0, Math.min(1, (Math.hypot(cam.x - p.x, cam.z - p.z) - 7) / 4)); obj.visible = k > 0.02; mats.forEach(function(m) { m.opacity = k; }); }); }
     }, undefined, function() {});
   }
+  // Painted on canvases, so nothing to download: the plaza's paving and the lagoon's ripples. Colours are screen colours (sRGB textures).
+  function paint(n, draw) { const c = document.createElement('canvas'); c.width = c.height = n; draw(c.getContext('2d'), n); const t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 8; return t; }
+  function pavement() { // rings of pastel pavers, a band of petals, a lighter path to each door, fallen blossom towards the trees
+    return paint(LOW ? 1024 : 2048, function(g, n) {
+      let s = 11; const rand = function() { s = (s * 16807) % 2147483647; return s / 2147483647; }, R = 19.6, u = n / (R * 2), TAU = Math.PI * 2;
+      g.fillStyle = '#c9bbdd'; g.fillRect(0, 0, n, n);                                             // the joints
+      g.setTransform(0, -u, u, 0, n / 2, n / 2);                                                  // from here on we draw in plaza units (x, z): this is how the cylinder's top cap is mapped
+      const tints = ['#e9dff3', '#e1d5ee', '#ecdfe9', '#ddd2ec', '#e6ddf2'];
+      for (let r0 = 0, ring = 0; r0 < R; ring++) { const r1 = r0 + 0.95 + (ring % 3) * 0.12, count = Math.max(6, Math.round((r0 + r1) * Math.PI / 1.5)), off = rand() * TAU, gap = 0.035, ri = Math.max(0.05, r0 + gap), ro = r1 - gap;
+        for (let i = 0; i < count; i++) { const a0 = off + i / count * TAU, a1 = off + (i + 1) / count * TAU;
+          g.beginPath(); g.arc(0, 0, ro, a0 + gap / ro, a1 - gap / ro); g.arc(0, 0, ri, a1 - gap / ri, a0 + gap / ri, true); g.closePath(); g.fillStyle = tints[Math.floor(rand() * tints.length)]; g.fill(); }
+        r0 = r1; }
+      for (let i = 0; i < 28; i++) { g.save(); g.rotate(i / 28 * TAU); g.globalAlpha = 0.75; g.fillStyle = i % 2 ? '#f6e3d6' : '#f5c3d8'; g.beginPath(); g.ellipse(9.6, 0, 0.9, 0.34, 0, 0, TAU); g.fill(); g.restore(); } // petals inlaid between the two light lines
+      g.lineCap = 'round'; g.lineWidth = 1.5; g.strokeStyle = 'rgba(250,244,236,.45)';
+      PLACES.slice(1).forEach(function(p) { const d = Math.hypot(p.door[0], p.door[1]); g.beginPath(); g.moveTo(p.door[0] / d * 4.4, p.door[1] / d * 4.4); g.lineTo(p.door[0], p.door[1]); g.stroke(); });
+      for (let i = 0; i < 420; i++) { const a = rand() * TAU, r = 11 + Math.sqrt(rand()) * 8.4; g.save(); g.translate(Math.cos(a) * r, Math.sin(a) * r); g.rotate(rand() * TAU); g.globalAlpha = 0.5 + rand() * 0.4; g.fillStyle = rand() < 0.5 ? '#f7b9d2' : '#fbd9e6'; g.beginPath(); g.ellipse(0, 0, 0.1, 0.055, 0, 0, TAU); g.fill(); g.restore(); }
+      const shade = g.createRadialGradient(0, 0, 4, 0, 0, R); shade.addColorStop(0, 'rgba(255,250,246,.16)'); shade.addColorStop(0.6, 'rgba(255,250,246,0)'); shade.addColorStop(1, 'rgba(150,128,190,.2)'); // lighter at the heart, deeper at the rim
+      g.globalAlpha = 1; g.fillStyle = shade; g.beginPath(); g.arc(0, 0, R + 1, 0, TAU); g.fill();
+    });
+  }
+  function ripples() { // a tile of soft light and dark streaks; two copies slide across each other on the lagoon
+    return paint(256, function(g, n) {
+      let s = 5; const rand = function() { s = (s * 16807) % 2147483647; return s / 2147483647; };
+      g.fillStyle = '#8fe3df'; g.fillRect(0, 0, n, n);
+      for (let i = 0; i < 46; i++) { const x = rand() * n, y = rand() * n, w = 18 + rand() * 40, h = 2.5 + rand() * 4; g.fillStyle = i % 3 ? '#dffcf8' : '#63c9cf';
+        for (let k = 0; k < 3; k++) { g.globalAlpha = 0.14; for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) { g.beginPath(); g.ellipse(x + ox * n, y + oy * n, w * (1 - k * 0.28), h * (1 - k * 0.28), 0, 0, Math.PI * 2); g.fill(); } } } // drawn nine times: it tiles
+    });
+  }
+  function lagoon() {
+    const a = ripples(), b = ripples(); a.wrapS = a.wrapT = b.wrapS = b.wrapT = T.RepeatWrapping; a.repeat.set(13, 13); b.repeat.set(7.3, 7.3); b.rotation = 0.7;
+    flat(group, new T.CircleGeometry(120, 48), new T.MeshStandardMaterial({ map: a, roughness: 0.12, metalness: 0.25, emissive: col(0x6fdbd7), emissiveIntensity: 0.16 }), -0.4);
+    flat(group, new T.CircleGeometry(120, 48), new T.MeshBasicMaterial({ map: b, transparent: true, opacity: 0.32, depthWrite: false }), -0.39);
+    const foam = paint(256, function(g, n) { const f = g.createRadialGradient(n / 2, n / 2, n * 0.4, n / 2, n / 2, n / 2); f.addColorStop(0, 'rgba(255,255,255,0)'); f.addColorStop(0.2, 'rgba(255,255,255,.85)'); f.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = f; g.fillRect(0, 0, n, n); });
+    const surf = flat(group, new T.CircleGeometry(24.5, 64), new T.MeshBasicMaterial({ map: foam, transparent: true, opacity: 0.5, depthWrite: false }), -0.38); // foam where the lagoon meets the plaza
+    anim.push(function(t) { a.offset.set(t * 0.011, t * 0.006); b.offset.set(-t * 0.008, t * 0.01); surf.material.opacity = 0.42 + Math.sin(t * 0.8) * 0.14; surf.scale.setScalar(1 + Math.sin(t * 0.8) * 0.006); });
+  }
+  // The textured fountain's water moves: droplets leap from under the lotus into the basin and rings spread where they land.
+  // Heights measured on city-seed.glb at its 7.6 width: water at 1.47, the jets leave near y 3 at radius 1.2. Like the model, it fades near the camera.
+  function spray() {
+    const n = LOW ? 36 : 84, pos = new Float32Array(n * 3), geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3));
+    const mat = new T.PointsMaterial({ map: Creature.dotTexture(), size: 0.3, transparent: true, depthWrite: false, toneMapped: false }), pts = new T.Points(geo, mat); pts.frustumCulled = false; pts.visible = false; group.add(pts);
+    pts.renderOrder = 2; // after the fountain: its model is transparent too (it fades), and drawn later it would paint over the droplets
+    const rings = [0, 1, 2, 3, 4].map(function() { const r = flat(group, new T.RingGeometry(0.82, 1, 24), new T.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false }), 1.5); r.visible = false; r.renderOrder = 2; return r; });
+    anim.push(function(t) {
+      const cam = Creature.cameraPos(), k = Math.max(0, Math.min(1, (Math.hypot(cam.x, cam.z) - 7) / 4)), show = !!groups.seed.userData.model && k > 0.02;
+      pts.visible = show; rings.forEach(function(r) { r.visible = show; }); if (!show) return;
+      for (let i = 0; i < n; i++) { const a = i * 2.399963, s = (t * 0.55 + i * 0.618034) % 1, r = 1.2 + s * 1.45; pos[i * 3] = Math.cos(a) * r; pos[i * 3 + 1] = 3 + 1.6 * s - 3.1 * s * s; pos[i * 3 + 2] = Math.sin(a) * r; } // one small arc each, all round the lotus
+      geo.attributes.position.needsUpdate = true; mat.opacity = 0.85 * k;
+      rings.forEach(function(r, i) { const u = t * 0.5 + i * 0.2, s = u % 1, a = i * 2.399963 + Math.floor(u) * 1.7; r.position.set(Math.cos(a) * 2.6, 1.5, Math.sin(a) * 2.6); r.scale.setScalar(0.1 + s * 0.5); r.material.opacity = (1 - s) * 0.6 * k; });
+    });
+  }
   function ground() {
-    flat(group, new T.CircleGeometry(120, 48), M.water, -0.4);                                   // lagoon
-    add(group, cyl(19.6, 20.6, 0.6, 64), std(0xe4d8f0, { roughness: 0.55 }), 0, -0.3, 0);         // the plaza, a shade deeper than the buildings
+    lagoon();
+    const side = std(0xe4d8f0, { roughness: 0.55 });                                              // the plaza: paving on top, plain sides
+    add(group, cyl(19.6, 20.6, 0.6, 64), [side, new T.MeshStandardMaterial({ map: pavement(), roughness: 0.6 }), side], 0, -0.3, 0);
     flat(group, new T.RingGeometry(17.4, 19.6, 64), M.jade, 0.012);                               // planted rim
     flat(group, new T.RingGeometry(12.5, 12.8, 64), M.lilac, 0.014); flat(group, new T.RingGeometry(6.6, 6.8, 64), M.aqua, 0.014); // inlaid light lines
     PLACES.slice(1).forEach(function(p) { const m = flat(group, new T.CircleGeometry(1.5, 28), M.pearl, 0.016); m.position.set(p.door[0], 0.016, p.door[1]); }); // a doorstep in front of each place

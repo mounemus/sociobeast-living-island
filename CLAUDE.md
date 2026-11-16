@@ -46,7 +46,10 @@ web/assets/city.js        (state on 2026-11-14 night) play.html OPENS in this ci
                           the primitives below. Residents: one creature of every other species strolls and greets (spawnResidents).
                           Trees and far scenery (2026-11-15): scatter(file, spots, old, bob) repeats one model as an InstancedMesh —
                           city-tree.glb on the rim, city-isle.glb (an island of towers) as the two floating gardens and, sunk to
-                          its grass in the lagoon, as the skyline. Only the ground is still primitives.
+                          its grass in the lagoon, as the skyline. Ground and water (2026-11-16) are painted on canvases, nothing
+                          to download: pavement() on the plaza's top cap, ripples() sliding over the lagoon, foam at its edge,
+                          spray() = droplets and rings on the textured fountain (renderOrder 2: the fading models are transparent
+                          and would otherwise be drawn over them).
 web/assets/city.js        the daylight plaza of the online game (2026-11-14): Seed Plaza + Pulse Tower (Create), Bloom Gallery, Seed Market,
                           Echo Garden (Feed, Cuddle), Canopy Lounge (Play), built from primitives on first entry, palette given in sRGB
                           (col()). Tap a place or the ground to walk (one side step around the fountain), a name button per place
