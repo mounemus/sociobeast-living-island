@@ -9,8 +9,11 @@
     <meta property="og:description" content="Choose a creature, hatch it and raise it. It grows with your care and remembers you.">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
+    <!-- the player's comfort settings, read before anything draws: text size and contrast are classes, the 3D scene reads the rest -->
+    <script>try { window.BEAST_SETTINGS = JSON.parse(localStorage.getItem('sociobeast.settings')) || {}; } catch (e) { window.BEAST_SETTINGS = {}; }
+        document.documentElement.classList.toggle('big', !!BEAST_SETTINGS.big); document.documentElement.classList.toggle('contrast', !!BEAST_SETTINGS.contrast);</script>
     <link rel="stylesheet" href="assets/beast.css?v=22">
-    <link rel="stylesheet" href="assets/play.css?v=10">
+    <link rel="stylesheet" href="assets/play.css?v=12">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
 </head>
 <body>
@@ -20,7 +23,7 @@
 
     <div id="hud">
         <div id="top">
-            <div id="h-title" class="row"><span><span id="h-name"></span><span id="h-stage"></span></span><span class="r"><span id="h-mood"></span><span id="h-bond"></span><span id="h-streak"></span><button type="button" id="h-why" class="chip">Journal</button><button type="button" id="h-acct" class="chip hidden">Save online</button></span></div>
+            <div id="h-title" class="row"><span><span id="h-name"></span><span id="h-stage"></span></span><span class="r"><span id="h-mood"></span><span id="h-bond"></span><span id="h-streak"></span><button type="button" id="h-why" class="chip">Journal</button><button type="button" id="h-acct" class="chip hidden">Save online</button><button type="button" id="h-set" class="chip">Settings</button></span></div>
             <div><div class="bar"><div id="h-xp"></div></div><div class="row"><button type="button" id="h-mission" title="Today's missions"></button><div id="h-xp-txt" class="num"></div></div></div>
             <div id="h-vitals" class="panel">
                 <div class="vital" id="v-food"><div class="row"><span>Food</span></div><div class="bar"><div id="h-food"></div></div></div>
@@ -57,6 +60,15 @@
                 <div class="row"><h2 id="r-title"></h2><button type="button" class="act" id="r-close">Done</button></div>
                 <div class="label">Light</div><div id="r-light" class="opts"></div>
                 <div class="label">Decorations</div><div id="r-decor" class="opts"></div>
+            </div>
+        </div>
+        <div id="settings" class="hidden" role="dialog" aria-modal="true" aria-labelledby="s-title">
+            <div class="panel">
+                <div class="row"><h2 id="s-title">Settings</h2><button type="button" class="act" id="s-close">Close</button></div>
+                <div class="label">Comfort</div><div id="s-list"></div>
+                <div class="label">Your data</div>
+                <p>Your creature lives in this browser, and online only if you chose to save it there. You can take a copy or remove it at any time.</p>
+                <div class="row"><button type="button" class="act" id="s-export">Download my data</button><button type="button" class="act" id="s-erase">Delete from this browser</button></div>
             </div>
         </div>
         <div id="journal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="j-title">
@@ -100,7 +112,7 @@
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'loaders/DRACOLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
-          .then(function() { return loadSeq(['assets/creature.js?v=30', 'assets/cast.js?v=25', 'assets/city.js?v=10', 'assets/evolution.js?v=4', 'assets/cloud.js?v=2', 'assets/pet.js?v=14']); })
+          .then(function() { return loadSeq(['assets/creature.js?v=31', 'assets/cast.js?v=25', 'assets/city.js?v=11', 'assets/evolution.js?v=4', 'assets/cloud.js?v=2', 'assets/pet.js?v=15']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>

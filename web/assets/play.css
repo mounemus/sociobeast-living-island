@@ -61,6 +61,16 @@ body, #load { background: var(--night); }
 #journal p, #journal .sub, #account p, #account .sub { color: var(--ink-2); font-size: 12px; }
 #journal ol { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: -6px; }
 #j-evo .sub { display: block; }
+#h-mood { display: none; } #h-title { flex-wrap: wrap; row-gap: 6px; } /* the title carries three buttons: no mood word, and they drop to a second line when the name is long */
+/* Settings: comfort and the player's data */
+#settings { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(13,16,32,.55); pointer-events: auto; z-index: 4; }
+#settings .panel { width: min(94vw, 460px); max-height: 94vh; overflow: auto; padding: 22px; display: flex; flex-direction: column; gap: 12px; background: var(--glass-2); border-radius: var(--r-panel); user-select: text; }
+#settings h2 { flex: 1; font: 600 22px/1.15 var(--serif); } #settings p, #settings .sub { color: var(--ink-2); font-size: 12px; } #settings .row { flex-wrap: wrap; }
+.set { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; cursor: pointer; font-size: 14px; } .set input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--jade); flex: none; } .set .sub { display: block; font-weight: 400; }
+html.contrast { --glass: rgba(10,12,26,.92); --glass-2: rgba(10,12,26,.97); --ink-2: rgba(243,246,241,.92); --line: rgba(255,255,255,.45); }
+html.big .act { font-size: 15px; } html.big .chip { font-size: 12px; } html.big #cta, html.big .bubble { font-size: 115%; } html.big #h-xp-txt, html.big #h-mission, html.big .vital .row, html.big .place, html.big .opt { font-size: 13.5px; }
+html.big #journal p, html.big #journal .sub, html.big #journal li, html.big #settings p, html.big #settings .sub, html.big #account p, html.big #account .sub, html.big #room .sub { font-size: 14px; } html.big .set { font-size: 16px; }
+html.big #cta, html.big #h-mission { white-space: normal; } html.big #cta { text-align: center; } /* larger text may take two lines rather than be cut */
 /* the Room panel sits where the dock is, so the nest stays in view while the player chooses */
 #room { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(94vw, 520px); z-index: 3; pointer-events: auto; } #hud.rooming #dock { display: none; }
 #room .panel { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: var(--glass-2); border-radius: var(--r-panel); }
@@ -89,7 +99,7 @@ body, #load { background: var(--night); }
 .pickone .sub { display: block; font-weight: 400; margin-top: 3px; }
 
 @media (max-aspect-ratio: 3/4) {
-  #h-mood { display: none; } #h-title { flex-wrap: wrap; row-gap: 6px; } /* room for the Journal and account buttons: they drop to a second line when the name is long */
+  #h-bond { display: none; } /* room for the three buttons of the title */
   .act { padding: 11px 13px; }
   #actions { gap: 6px; }
 }

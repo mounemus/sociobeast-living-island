@@ -55,7 +55,7 @@
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'loaders/DRACOLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
           .then(function() { return window.BEAST_CONFIG.mode === 'live' ? fetch('api/state').then(function(r) { return r.json(); }).then(function(s) { window.BEAST_STATE = s || null; }).catch(function() {}) : null; })
-          .then(function() { return loadSeq(['assets/creature.js?v=30', 'assets/cast.js?v=25', 'assets/game.js?v=23', 'assets/director.js?v=22', 'assets/audience.js?v=22']); })
+          .then(function() { return loadSeq(['assets/creature.js?v=31', 'assets/cast.js?v=25', 'assets/game.js?v=23', 'assets/director.js?v=22', 'assets/audience.js?v=22']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>

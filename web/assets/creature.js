@@ -14,7 +14,8 @@
   const lerp = function(a, b, t) { return a + (b - a) * t; };
   const rnd = function(a, b) { return a + Math.random() * (b - a); };
   // ?q=low: 1x pixels, no antialiasing, no post-processing (weak phones) · CALM: the system asks for reduced motion, the camera holds still
-  const LOW = /[?&]q=low\b/.test(location.search), CALM = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
+  const SET = window.BEAST_SETTINGS || {}; // the player's comfort settings (play.html), on top of ?q=low and of the device's own preference
+  const LOW = /[?&]q=low\b/.test(location.search) || !!SET.low, CALM = matchMedia('(prefers-reduced-motion: reduce)').matches || SET.calm ? 0 : 1;
 
   let renderer, scene, camera, composer, clock;
   let root, parts = {}, eyes = [];

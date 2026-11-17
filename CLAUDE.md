@@ -35,6 +35,12 @@ web/assets/pet.js         the game around it (SPECIES, STAGES names, RATE): need
                           visible); the choice is P.room { light, decor }. creature.js setRoom() does the look: LIGHTS (sky tint
                           uTint, lamps, fog) and DECOR (city-tree, city-seed, city-isle reused beside the nest, lantern sprites),
                           shown at home only, each model fetched the first time it shows.
+                          Settings (2026-11-17, end of M1): the Settings chip opens #settings. Comfort choices live in localStorage
+                          'sociobeast.settings' (per device, not in the save) and in window.BEAST_SETTINGS, set by an inline script
+                          in play.html's head: calm and low are read by creature.js / city.js when they start (the page reloads),
+                          instant (city.js goTo: appear at the door), big and contrast (classes on <html>, rules in play.css).
+                          Data: exportData() downloads one JSON (creature, settings, rules version); eraseLocal() removes the
+                          creature from this browser (the online save keeps its own button in the account panel).
                           `where` = 'home' | 'city' | a place id; each action button lists where it shows (data-at in play.html);
                           the first visit of the day to a place = explore_new_zone. ?q=low = low graphics (creature.js).
 web/assets/cloud.js       accounts and online save of the online game on Firebase (2026-11-14): sign-in by emailed link (Firebase

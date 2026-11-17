@@ -10,7 +10,7 @@
   'use strict';
   const T = THREE;
   const $ = function(id) { return document.getElementById(id); };
-  const CALM = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
+  const SET = window.BEAST_SETTINGS || {}, CALM = matchMedia('(prefers-reduced-motion: reduce)').matches || SET.calm ? 0 : 1; // SET: the player's comfort settings (play.html)
   // x, z: centre of the place · door: where the creature stands · top: label height · r: radius of its tap target
   const PLACES = [
     { id: 'seed',   label: 'Seed Plaza',    x: 0,     z: 0,    door: [0, 5.8],     top: 6.4,  r: 3.6 },
@@ -252,6 +252,7 @@
   function goTo(id) {
     const p = PLACES.filter(function(q) { return q.id === id; })[0]; if (!on || !p || (canWalk && !canWalk())) return;
     marker.visible = false; mark(null); if (cb) cb(null);
+    if (SET.instant) { Creature.standAt(p.door[0], p.door[1]); mark(id); if (cb) cb(id); return; } // "Skip the walks": it appears at the door
     Creature.goTo(route({ x: p.door[0], z: p.door[1] }), function() { mark(id); if (cb) cb(id); });
   }
   function tap(e) {
@@ -266,7 +267,7 @@
   // ─────────────────────────────────────────────────────────────
   // ponytail: they are scenery with manners, each one its own copy of a creature model (no shared skeleton), five at most
   // (two with ?q=low). Other players replace them when the city goes real-time.
-  const LOW = /[?&]q=low\b/.test(location.search);
+  const LOW = /[?&]q=low\b/.test(location.search) || !!SET.low;
   const HELLO = ['Hi {n}!', 'Lovely day on the plaza, {n}.', 'Have you seen the fountain glow?', 'The gallery smells like fresh paint.', 'Race you to the market!', 'I like your style, {n}.', 'The garden pond is warm today.'];
   let residents = [], npcBubble = null, speaker = null, lastFrame = 0, playerName = '', onMeet = null;
   function spawnResidents(list) {

@@ -246,6 +246,38 @@
     if (b.dataset.k === 'light') now.light = b.dataset.id; else { const i = now.decor.indexOf(b.dataset.id); if (i >= 0) now.decor.splice(i, 1); else now.decor.push(b.dataset.id); }
     P.room = now; Creature.setRoom(now); renderRoom(); save();
   }
+  // SETTINGS: comfort choices, kept in this browser apart from the creature (they belong to the device), and the player's data:
+  // a copy to download, and a way to remove the creature from this browser. The online save has its own panel (Save online).
+  const SETTINGS = [
+    { id: 'calm', label: 'Reduce motion', note: 'No camera sway, no floating or drifting.', reload: true },
+    { id: 'low', label: 'Lighter graphics', note: 'For a slow phone, or to save battery.', reload: true },
+    { id: 'instant', label: 'Skip the walks', note: 'In the city, your creature appears at the place you pick.' },
+    { id: 'big', label: 'Larger text' }, { id: 'contrast', label: 'Stronger contrast' }];
+  const SET = window.BEAST_SETTINGS || (window.BEAST_SETTINGS = {});
+  function renderSettings() {
+    const sys = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('s-list').innerHTML = SETTINGS.map(function(o) { const forced = o.id === 'calm' && sys, note = forced ? 'Your device asks for it.' : o.note;
+      return '<label class="set"><input type="checkbox" data-id="' + o.id + '"' + (SET[o.id] || forced ? ' checked' : '') + (forced ? ' disabled' : '') + '><span><b>' + o.label + '</b>' + (note ? '<span class="sub">' + note + '</span>' : '') + '</span></label>'; }).join('');
+  }
+  function showSettings() { renderSettings(); $('settings').classList.remove('hidden'); $('s-close').focus(); }
+  function hideSettings() { $('settings').classList.add('hidden'); }
+  function settingChange(e) {
+    const id = e.target.dataset.id, o = SETTINGS.filter(function(x) { return x.id === id; })[0]; if (!o) return;
+    SET[id] = e.target.checked; try { localStorage.setItem('sociobeast.settings', JSON.stringify(SET)); } catch (err) {}
+    document.documentElement.classList.toggle('big', !!SET.big); document.documentElement.classList.toggle('contrast', !!SET.contrast);
+    if (o.reload) { save(true); location.reload(); } // the 3D scene reads these two when it starts
+  }
+  function exportData() { // everything this browser holds about the creature, as one readable file
+    if (!P) return;
+    const data = { app: 'SocioBeast', exportedAt: new Date().toISOString(), rules: Evolution.RULES.version, settings: SET, creature: P };
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    a.download = 'sociobeast-' + (P.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'creature') + '-' + dayKey(new Date()) + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function() { URL.revokeObjectURL(a.href); }, 2000);
+  }
+  function eraseLocal() {
+    if (!P || !confirm('Delete ' + P.name + ' from this browser? This cannot be undone.' + (synced ? ' Your online save is not touched: it has its own button in "Saved online".' : ''))) return;
+    P = null; try { localStorage.removeItem(KEY); } catch (err) {} location.reload();
+  }
   function fade(fn) { const f = $('fade'); if (f.classList.contains('on')) return; f.classList.add('on'); setTimeout(function() { fn(); f.classList.remove('on'); }, 350); }
   // the plaza's residents: one creature of every other species, in its second look (stage 2)
   function residents() { return Object.keys(SPECIES).filter(function(id) { return id !== P.species; }).map(function(id) { return { name: SPECIES[id].defaultName, model: SPECIES[id].models ? SPECIES[id].models[2] : 'form-04' }; }); }
@@ -495,7 +527,10 @@
     $('h-why').addEventListener('click', showJournal); $('h-mission').addEventListener('click', showJournal); $('j-close').addEventListener('click', hideJournal);
     $('journal').addEventListener('click', function(e) { if (e.target === this) hideJournal(); });
     $('room').addEventListener('click', roomClick); $('r-close').addEventListener('click', hideRoom);
-    addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideJournal(); hideAccount(); hideRoom(); } });
+    $('h-set').addEventListener('click', showSettings); $('s-close').addEventListener('click', hideSettings); $('s-list').addEventListener('change', settingChange);
+    $('s-export').addEventListener('click', exportData); $('s-erase').addEventListener('click', eraseLocal);
+    $('settings').addEventListener('click', function(e) { if (e.target === this) hideSettings(); });
+    addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideJournal(); hideAccount(); hideRoom(); hideSettings(); } });
     if (Cloud.on) { // accounts are configured: offer the online save, also from the picker (a returning player on a new device)
       ['h-acct', 'p-signin'].forEach(function(id) { $(id).classList.remove('hidden'); $(id).addEventListener('click', showAccount); });
       $('a-close').addEventListener('click', hideAccount); $('account').addEventListener('click', accountClick);
