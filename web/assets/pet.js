@@ -221,6 +221,31 @@
   // ─────────────────────────────────────────────────────────────
   // CITY — out of the nest: walk between the places; the first visit of the day to each one is a discovery
   // ─────────────────────────────────────────────────────────────
+  // ROOM: the nest is the player's own. A light and a few decorations, chosen in the Room panel and kept in the save.
+  // Everything opens with the creature's stage: no shop, nothing to buy. The look itself is Creature.setRoom().
+  const ROOM = {
+    light: [{ id: 'night', label: 'Starlit night', stage: 1 }, { id: 'dawn', label: 'Rose dawn', stage: 1 }, { id: 'aurora', label: 'Aurora', stage: 2 }, { id: 'dusk', label: 'Golden dusk', stage: 3 }],
+    decor: [{ id: 'lanterns', label: 'Floating lanterns', stage: 1 }, { id: 'tree', label: 'Blossom tree', stage: 2 }, { id: 'fountain', label: 'Little fountain', stage: 3 }, { id: 'isle', label: 'Island on the horizon', stage: 4 }]
+  };
+  function roomNow() { // what is chosen, limited to what is open at this stage
+    const r = P.room || {}, open = function(o) { return P.stage >= o.stage; }, light = ROOM.light.filter(function(o) { return o.id === r.light && open(o); })[0];
+    return { light: light ? light.id : 'night', decor: ROOM.decor.filter(function(o) { return (r.decor || []).indexOf(o.id) >= 0 && open(o); }).map(function(o) { return o.id; }) };
+  }
+  function renderRoom() {
+    const now = roomNow(), btn = function(kind, o, on) { const locked = P.stage < o.stage;
+      return '<button type="button" class="opt' + (on ? ' on' : '') + '" data-k="' + kind + '" data-id="' + o.id + '" aria-pressed="' + on + '"' + (locked ? ' disabled' : '') + '>' + o.label + (locked ? '<span class="sub"> · at ' + STAGES[o.stage].name + '</span>' : '') + '</button>'; };
+    $('r-title').textContent = P.name + '\u2019s nest';
+    $('r-light').innerHTML = ROOM.light.map(function(o) { return btn('light', o, now.light === o.id); }).join('');
+    $('r-decor').innerHTML = ROOM.decor.map(function(o) { return btn('decor', o, now.decor.indexOf(o.id) >= 0); }).join('');
+  }
+  function showRoom() { if (!P || where !== 'home') return; renderRoom(); $('hud').classList.add('rooming'); $('room').classList.remove('hidden'); $('r-close').focus(); }
+  function hideRoom() { $('hud').classList.remove('rooming'); $('room').classList.add('hidden'); }
+  function roomClick(e) {
+    const b = e.target.closest('.opt'); if (!b || b.disabled) return;
+    const now = roomNow();
+    if (b.dataset.k === 'light') now.light = b.dataset.id; else { const i = now.decor.indexOf(b.dataset.id); if (i >= 0) now.decor.splice(i, 1); else now.decor.push(b.dataset.id); }
+    P.room = now; Creature.setRoom(now); renderRoom(); save();
+  }
   function fade(fn) { const f = $('fade'); if (f.classList.contains('on')) return; f.classList.add('on'); setTimeout(function() { fn(); f.classList.remove('on'); }, 350); }
   // the plaza's residents: one creature of every other species, in its second look (stage 2)
   function residents() { return Object.keys(SPECIES).filter(function(id) { return id !== P.species; }).map(function(id) { return { name: SPECIES[id].defaultName, model: SPECIES[id].models ? SPECIES[id].models[2] : 'form-04' }; }); }
@@ -451,7 +476,7 @@
   }
   function start() {
     P.stage = Evolution.stageOf(P.xp); Creature.setForms(SPECIES[P.species].models); Creature.setStage(P.stage, false); Creature.setVitals(P); mood = computeMood(); Creature.setMood(mood);
-    const gift = newDay(); enterCity(true); renderHud(); setInterval(tick, 500);
+    const gift = newDay(); enterCity(true); Creature.setRoom(roomNow()); renderHud(); // after entering the city: the nest's decorations load when it first shows setInterval(tick, 500);
     setTimeout(function() {
       if (P.stage === 0) say('Something is moving inside… keep it warm.', 6000);
       else speak(awayFor > H ? 'back' : mood === 'curious' ? 'hello' : mood, 5000);
@@ -463,13 +488,14 @@
     $('actions').addEventListener('click', function(e) {
       const b = e.target.closest('.act'); if (!b) return;
       if (b.dataset.act === 'talk') { const f = $('talk'); f.classList.toggle('hidden'); if (!f.classList.contains('hidden')) $('talk-in').focus(); if (P) renderHud(); }
-      else if (b.dataset.act === 'city') enterCity(); else if (b.dataset.act === 'home') goHome();
+      else if (b.dataset.act === 'city') enterCity(); else if (b.dataset.act === 'home') goHome(); else if (b.dataset.act === 'room') showRoom();
       else act(b.dataset.act);
     });
     $('talk').addEventListener('submit', function(e) { e.preventDefault(); const i = $('talk-in'); talk(i.value); i.value = ''; });
     $('h-why').addEventListener('click', showJournal); $('h-mission').addEventListener('click', showJournal); $('j-close').addEventListener('click', hideJournal);
     $('journal').addEventListener('click', function(e) { if (e.target === this) hideJournal(); });
-    addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideJournal(); hideAccount(); } });
+    $('room').addEventListener('click', roomClick); $('r-close').addEventListener('click', hideRoom);
+    addEventListener('keydown', function(e) { if (e.key === 'Escape') { hideJournal(); hideAccount(); hideRoom(); } });
     if (Cloud.on) { // accounts are configured: offer the online save, also from the picker (a returning player on a new device)
       ['h-acct', 'p-signin'].forEach(function(id) { $(id).classList.remove('hidden'); $(id).addEventListener('click', showAccount); });
       $('a-close').addEventListener('click', hideAccount); $('account').addEventListener('click', accountClick);

@@ -30,6 +30,11 @@ web/assets/pet.js         the game around it (SPECIES, STAGES names, RATE): need
                           Missions (2026-11-16): three a day, drawn from the date by missions(day); progress = today's count of an
                           event type in the engine (P.counts), reward = one complete_mission event each (12 XP, 3 a day). Shown
                           on the line under the XP bar (#h-mission) and at the top of the journal; P.missionDay / P.missionDone.
+                          Room (2026-11-16): the nest is the player's own. ROOM in pet.js lists 4 lights and 4 decorations, each open
+                          from a stage (no shop); the Room button at home opens #room (sits where the dock is, so the nest stays
+                          visible); the choice is P.room { light, decor }. creature.js setRoom() does the look: LIGHTS (sky tint
+                          uTint, lamps, fog) and DECOR (city-tree, city-seed, city-isle reused beside the nest, lantern sprites),
+                          shown at home only, each model fetched the first time it shows.
                           `where` = 'home' | 'city' | a place id; each action button lists where it shows (data-at in play.html);
                           the first visit of the day to a place = explore_new_zone. ?q=low = low graphics (creature.js).
 web/assets/cloud.js       accounts and online save of the online game on Firebase (2026-11-14): sign-in by emailed link (Firebase

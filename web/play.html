@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
     <link rel="stylesheet" href="assets/beast.css?v=22">
-    <link rel="stylesheet" href="assets/play.css?v=8">
+    <link rel="stylesheet" href="assets/play.css?v=10">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥚</text></svg>">
 </head>
 <body>
@@ -45,12 +45,20 @@
                 <button type="button" class="act" data-act="cuddle" data-at="home echo">Cuddle</button>
                 <button type="button" class="act" data-act="create" data-at="pulse">Create</button>
                 <button type="button" class="act" data-act="sleep" data-at="home">Sleep</button>
+                <button type="button" class="act" data-act="room" data-at="home">Room</button>
                 <button type="button" class="act" data-act="talk" data-at="home city">Talk</button>
                 <button type="button" class="act" data-act="city" data-at="home">City</button>
                 <button type="button" class="act" data-act="home" data-at="city">Home</button>
             </div>
         </div>
         <div id="places" class="hidden"></div>
+        <div id="room" class="hidden" role="dialog" aria-labelledby="r-title">
+            <div class="panel">
+                <div class="row"><h2 id="r-title"></h2><button type="button" class="act" id="r-close">Done</button></div>
+                <div class="label">Light</div><div id="r-light" class="opts"></div>
+                <div class="label">Decorations</div><div id="r-decor" class="opts"></div>
+            </div>
+        </div>
         <div id="journal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="j-title">
             <div class="panel">
                 <div class="row"><h2 id="j-title"></h2><button type="button" class="act" id="j-close">Close</button></div>
@@ -92,7 +100,7 @@
         loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
           .catch(function() { return loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'); })
           .then(function() { return loadSeq(['loaders/GLTFLoader.js', 'loaders/DRACOLoader.js', 'shaders/CopyShader.js', 'shaders/LuminosityHighPassShader.js', 'postprocessing/EffectComposer.js', 'postprocessing/RenderPass.js', 'postprocessing/ShaderPass.js', 'postprocessing/UnrealBloomPass.js'].map(function(f) { return fx + f; })).catch(function() {}); })
-          .then(function() { return loadSeq(['assets/creature.js?v=27', 'assets/cast.js?v=25', 'assets/city.js?v=10', 'assets/evolution.js?v=4', 'assets/cloud.js?v=2', 'assets/pet.js?v=12']); })
+          .then(function() { return loadSeq(['assets/creature.js?v=30', 'assets/cast.js?v=25', 'assets/city.js?v=10', 'assets/evolution.js?v=4', 'assets/cloud.js?v=2', 'assets/pet.js?v=14']); })
           .then(function() { document.getElementById('load').classList.add('hidden'); })
           .catch(function(e) { document.getElementById('load').textContent = 'Could not load ' + e; });
     </script>

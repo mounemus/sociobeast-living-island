@@ -87,10 +87,10 @@
 
   function buildRoom() {
     skyMat = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false,
-      uniforms: { uTime: uni.time, uDay: { value: 0 }, uSrgb: { value: 0 } },
+      uniforms: { uTime: uni.time, uDay: { value: 0 }, uSrgb: { value: 0 }, uTint: { value: new T.Vector3(1, 1, 1) } },
       vertexShader: 'varying vec3 vp; void main(){ vp = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
       fragmentShader: [
-        'uniform float uTime; uniform float uDay; uniform float uSrgb; varying vec3 vp;',
+        'uniform float uTime; uniform float uDay; uniform float uSrgb; uniform vec3 uTint; varying vec3 vp;',
         'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }',
         'float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y); }',
         'float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){v+=a*noise(p);p*=2.1;a*=0.48;} return v; }',
@@ -108,7 +108,7 @@
         '  vec3 neb1 = vec3(0.12, 0.04, 0.18) * smoothstep(0.35, 0.7, n1) * 1.4;',
         '  vec3 neb2 = vec3(0.04, 0.06, 0.16) * smoothstep(0.4, 0.75, n2) * 1.0;',
         '  vec3 neb3 = vec3(0.08, 0.03, 0.12) * smoothstep(0.45, 0.8, n3) * 0.7;',
-        '  vec3 c = base + neb1 + neb2 + neb3;',
+        '  vec3 c = (base + neb1 + neb2 + neb3) * uTint;', // uTint: the light the player chose for the nest (setRoom)
         // the city's late-afternoon sky (linear values): peach horizon, lilac-blue zenith, aqua haze below, soft clouds
         '  vec3 day = h > 0.0 ? mix(vec3(1.0, 0.62, 0.58), vec3(0.33, 0.42, 0.95), pow(h, 0.55)) : mix(vec3(1.0, 0.62, 0.58), vec3(0.45, 0.85, 0.80), pow(-h, 0.5));',
         '  day += vec3(0.30, 0.22, 0.26) * smoothstep(0.42, 0.78, n1) * smoothstep(0.02, 0.35, h);',
@@ -328,6 +328,7 @@
     scene.add(dustMotes);
   }
   function updateEnvironment(t, dt) {
+    if (decorGroup && decorGroup.visible) { decorGroup.position.y = Math.sin(t * 0.4 + 1) * 0.07; lanterns.forEach(function(s, i) { s.position.y = s.userData.y + Math.sin(t * 0.7 + i * 1.9) * 0.16; s.material.opacity = 0.8 + Math.sin(t * 1.3 + i) * 0.15; }); }
     if (nestModel) { nestModel.position.y = Math.sin(t * 0.45) * 0.06; nestModel.rotation.y = Math.sin(t * 0.08) * 0.03; nest.position.y = nestModel.position.y; root.position.y = A.view === 'home' ? nestModel.position.y : 0; }
     if (dustMotes) { const dp = dustMotes.geometry.attributes.position; for (let i = 0; i < dp.count; i++) { const dv = dustVel[i]; dp.setX(i, dp.getX(i) + Math.sin(t * dv.sx + dv.px) * dt * 0.06); dp.setY(i, dp.getY(i) + Math.sin(t * dv.sy + dv.py) * dt * 0.03); dp.setZ(i, dp.getZ(i) + Math.sin(t * dv.sz + dv.pz) * dt * 0.06); } dp.needsUpdate = true; dustMotes.material.opacity = 0.35 + Math.sin(t * 0.3) * 0.1; }
     if (parts.backdrop) parts.backdrop.rotation.y = Math.sin(t * 0.02) * 0.02;
@@ -423,6 +424,36 @@
     parts.accent.visible = home;
     if (parts.bloom) parts.bloom.strength = home ? 0.5 : 0.16;
     if (vignettePass) { vignettePass.uniforms.lift.value = home ? 0 : 1; vignettePass.uniforms.darkness.value = home ? 0.45 : 0.3; }
+    applyRoom();
+  }
+  // ROOM: what the player chose for the nest (pet.js decides what is unlocked and keeps it). A light tints the night sky and
+  // the lamps; decorations are textured models the city already uses, floating beside the nest. Only shown at home.
+  const LIGHTS = { night: { tint: [1, 1, 1], hemi: 0x9fb8ff, key: 0xfff4e6, fog: 0x06041a }, dawn: { tint: [3.2, 1.8, 1.1], hemi: 0xffc2d4, key: 0xffd2b0, fog: 0x1c0a18 },
+    aurora: { tint: [0.4, 4.5, 1.0], hemi: 0x9dffe0, key: 0xdcfff2, fog: 0x04161a }, dusk: { tint: [3.0, 2.8, 0.5], hemi: 0xffdc9a, key: 0xffe6b8, fog: 0x1a1206 } };
+  const DECOR = { lanterns: {}, tree: { file: 'city-tree', h: 4.6, at: [-2.4, -1.3, -4.6], yaw: 0.5 }, fountain: { file: 'city-seed', h: 2.3, at: [2.4, -0.8, -4.2], yaw: -0.4 }, isle: { file: 'city-isle', h: 15, at: [5.5, -2, -36], yaw: -0.3 } };
+  let room = { light: 'night', decor: [] }, decorGroup = null; const decor = {}, lanterns = [];
+  function setRoom(r) { room = { light: r && LIGHTS[r.light] ? r.light : 'night', decor: ((r && r.decor) || []).filter(function(id) { return DECOR[id]; }) }; applyRoom(); }
+  function applyRoom() {
+    if (!skyMat) return;
+    const home = A.view === 'home', L = LIGHTS[home ? room.light : 'night'];
+    skyMat.uniforms.uTint.value.fromArray(L.tint);
+    if (home) { parts.hemi.color.set(L.hemi); parts.key.color.set(L.key); scene.fog.color.set(L.fog); }
+    if (!decorGroup) { decorGroup = new T.Group(); scene.add(decorGroup); }
+    decorGroup.visible = home;
+    Object.keys(DECOR).forEach(function(id) { const want = room.decor.indexOf(id) >= 0; if (want && home && !decor[id]) loadDecor(id); if (decor[id]) decor[id].visible = want; }); // a model is fetched the first time it is shown
+  }
+  function loadDecor(id) {
+    const d = DECOR[id], g = decor[id] = new T.Group(); decorGroup.add(g);
+    if (!d.file) { // lanterns: warm lights floating behind and beside the nest
+      for (let i = 0; i < 7; i++) { const a = -1.9 + i * 0.633, r = 2.5 + (i % 3) * 0.5, s = new T.Sprite(new T.SpriteMaterial({ map: dot, color: i % 2 ? 0xffc27a : 0xffe2a8, transparent: true, opacity: 0.95, blending: T.AdditiveBlending, depthWrite: false }));
+        s.position.set(Math.sin(a) * r, 0.9 + (i * 7 % 5) * 0.55, -Math.cos(a) * r - 0.6); s.scale.setScalar(0.7); s.userData.y = s.position.y; g.add(s); lanterns.push(s); }
+      return;
+    }
+    loader().load('assets/models/' + d.file + '.glb', function(gltf) {
+      const obj = gltf.scene; obj.traverse(function(o) { if (o.isMesh && o.material && o.material.map) { o.material.emissiveMap = o.material.map; o.material.emissive.set(0xffffff); o.material.emissiveIntensity = 0.3; } }); // lit by its own texture: the nest is a night scene
+      const box = new T.Box3().setFromObject(obj), sc = d.h / Math.max(0.001, box.max.y - box.min.y); obj.scale.setScalar(sc); box.setFromObject(obj); const c = box.getCenter(new T.Vector3());
+      obj.position.set(-c.x, -box.min.y, -c.z); g.position.set(d.at[0], d.at[1], d.at[2]); g.rotation.y = d.yaw; g.add(obj);
+    }, undefined, function() {});
   }
   // walks through the points [{x, z}, …] at a steady pace, then calls done()
   function goTo(points, done) { A.path = points.slice(); A.onArrive = done || null; A.act = null; }
@@ -623,5 +654,5 @@
   function ready() { return !!scene; }
   function project(x, y, z) { const v = new T.Vector3(x, y, z).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, visible: v.z < 1 }; }
   function cameraPos() { return camera.position; }
-  window.Creature = { init, ready, attach, project, loader, setView, goTo, standAt, ray, pos: function() { return root.position; }, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setForms, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
+  window.Creature = { init, ready, attach, project, loader, setView, setRoom, goTo, standAt, ray, pos: function() { return root.position; }, models: models, rigs: rigs, playClip: playClip, usingModel: function() { return !!A.usingModel; }, cameraPos, dotTexture: function() { return dot; }, gradientWing, wingShape, plush, crystal, PINK, CYAN, setForms, setStage, setMood, setVitals, setHatchProgress, hop, wander, spin, dance, sing, beg, yawn, wave, nom, shiver, bow, play, talk, lookAtCamera, lookAround, burstHearts, burstSparks, punch, headScreenPos, anim: A };
 })();
