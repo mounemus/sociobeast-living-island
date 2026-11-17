@@ -27,7 +27,7 @@ web/assets/pet.js         the game around it (SPECIES, STAGES names, RATE): need
                           ({text, remember}). Every gain is reward(type) → Evolution.apply; the AI voice never grants anything.
                           Save: localStorage 'sociobeast.pet.v1' (v2 = engine state merged in; v1 saves are migrated on load).
                           window.Pet = { state, mood, act, talk, check, reset }; Pet.check() self-tests the needs clock and the engine.
-                          Missions (2026-11-16): three a day, drawn from the date by missions(day); progress = today's count of an
+                          Missions (2026-11-16; in the engine since 2026-11-17: Evolution.missionsOf(day), ev.mission): three a day; progress = today's count of an
                           event type in the engine (P.counts), reward = one complete_mission event each (12 XP, 3 a day). Shown
                           on the line under the XP bar (#h-mission) and at the top of the journal; P.missionDay / P.missionDone.
                           Room (2026-11-16): the nest is the player's own. ROOM in pet.js lists 4 lights and 4 decorations, each open
@@ -89,6 +89,15 @@ server/server.js          home server (Pi): HTTP static + / with config injectio
 server/bridge.js          in-process TikTok bridge (tiktok-live-connector) + demo crowd; server/think.js the LLM voice (shared)
 server/admin.html         admin panel (password → /api/login → token for /ws?role=admin): creature status, bridge, test events, settings
 server/config.json        local config (git-ignored; config.example.json = defaults). Secrets live here, never in the repo.
+api/event.js              Vercel function, the rules engine behind the server (2026-11-17). POST { idToken, events }: asks Google whose
+                          token it is, applies the events with web/assets/evolution.js (settle(): the page's clock is not trusted)
+                          to the engine state in the player's Firestore document, field `engine`, which players cannot write
+                          (firestore.rules, deployed), and answers with it. Needs FIREBASE_SERVICE_ACCOUNT (a service account key,
+                          JSON) in the Vercel env: without it, 503. No dependency. Test: node scripts/test-event-function.mjs (in CI).
+                          The page's side is OFF until `serverRules: true` is added to BEAST_CONFIG.firebase in play.html:
+                          pet.js queue()/flush() send each rewarded event (kept in P.outbox until answered), cloud.js settle()
+                          posts them and load() puts the server's engine over the page's copy. To switch on: add the env var,
+                          redeploy, set the flag, then test signed in (the queue has never run against the real function).
 api/think.js              Vercel function for the online demo; imports server/think.js (env ANTHROPIC_API_KEY / OPENAI_API_KEY)
 web/assets/art/           the 11 form concept images (Higgsfield gpt_image_2_5, 2026-09-16) — the art bible and the input of the 3D step
 web/assets/models/        optional form-NN.glb per form (NN = stage+1). creature.js loads them (GLTFLoader) and hides the

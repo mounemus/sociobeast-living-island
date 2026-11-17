@@ -161,8 +161,28 @@
   // ─────────────────────────────────────────────────────────────
   // every gain goes through the rules engine: one event, applied once, written in the journal
   let seq = 0;
-  function reward(type) {
-    const now = Date.now(), r = Evolution.apply(P, { key: now + '-' + (++seq), type: type, at: now, day: dayKey(new Date(now)) });
+  // SERVER RULES (off until BEAST_CONFIG.firebase.serverRules is true): a signed-in player's events are also sent to
+  // api/event, which applies them to the engine state only the server can write, and answers with it. The page stays
+  // optimistic, so the game answers at once, and takes the server's word when it comes back. Guests, and everyone while
+  // the switch is off, play exactly as before.
+  let sending = false;
+  function queue(ev) {
+    if (!Cloud.server || !synced) return;
+    (P.outbox = P.outbox || []).push(ev); if (P.outbox.length > 90) P.outbox.splice(0, P.outbox.length - 90);
+    setTimeout(flush, 1500);
+  }
+  function flush() {
+    if (sending || !P || !synced || !Cloud.server || !(P.outbox && P.outbox.length)) return;
+    const batch = P.outbox.slice(0, 30), sent = function(e) { return batch.some(function(b) { return b.key === e.key; }); }; sending = true;
+    Cloud.settle(batch).then(function(res) { // answered: applied, or refused for good (a 4xx): either way these are done
+      P.outbox = (P.outbox || []).filter(function(e) { return !sent(e); });
+      if (res && res.engine && !P.outbox.length) { const was = P.stage; Object.assign(P, res.engine); if (P.stage !== was) Creature.setStage(P.stage, false); renderHud(); save(); }
+    }, function() {}).then(function() { sending = false; if (P && P.outbox && P.outbox.length) setTimeout(flush, 15000); }); // not reached: they stay queued and go with the next ones
+  }
+  function reward(type, mission) {
+    const now = Date.now(), ev = { key: now + '-' + (++seq), type: type, at: now, day: dayKey(new Date(now)) }; if (mission) ev.mission = mission;
+    const r = Evolution.apply(P, ev);
+    if (r.ok) queue(ev);
     if (r.evolved) evolve(P.stage);
     if (r.ok && type !== 'complete_mission') checkMissions();
     return r;
@@ -170,23 +190,17 @@
   // MISSIONS: three small goals a day, drawn from the date (the same three for everyone, nothing to store but which are done).
   // Their progress is read from the rules engine, the number of rewarded events of a type today: a mission cannot be faked,
   // and its reward is an event like any other (three a day at most). A missed day costs nothing.
-  const MISSIONS = [
-    { type: 'explore_new_zone', n: 3, text: 'Visit three places' }, { type: 'meet_resident', n: 2, text: 'Say hello to two residents' },
-    { type: 'care_action', n: 1, text: 'Share a meal at the Echo Garden' }, { type: 'play', n: 2, text: 'Play twice at the Canopy Lounge' },
-    { type: 'cuddle', n: 2, text: 'Give two cuddles' }, { type: 'complete_creation', n: 1, text: 'Create something at the Pulse Tower' },
-    { type: 'talk', n: 2, text: 'Have two talks' }];
-  function missions(day) { let h = 0; for (let i = 0; i < day.length; i++) h += day.charCodeAt(i); return [0, 1, 2].map(function(k) { return MISSIONS[(h + k * 3) % MISSIONS.length]; }); } // 3 and 7 share no factor: three different ones
-  function missionState() { // today's three: { type, text, n, have, done }
-    const d = dayKey(new Date()), done = P.missionDay === d ? P.missionDone : [];
-    return missions(d).map(function(m) { return { type: m.type, text: m.text, n: m.n, have: Math.min(m.n, P.day === d ? (P.counts[m.type] || 0) : 0), done: done.indexOf(m.type) >= 0 }; });
+  const MISSION_TEXT = { explore_new_zone: 'Visit three places', meet_resident: 'Say hello to two residents', care_action: 'Share a meal at the Echo Garden', play: 'Play twice at the Canopy Lounge',
+    cuddle: 'Give two cuddles', complete_creation: 'Create something at the Pulse Tower', talk: 'Have two talks' };
+  function missionState() { // today's three (the engine draws them): { type, text, n, have, done }
+    const d = dayKey(new Date()), done = P.missionDay === d ? (P.missionDone || []) : [];
+    return Evolution.missionsOf(d).map(function(m) { return { type: m.type, text: MISSION_TEXT[m.type], n: m.n, have: Math.min(m.n, P.day === d ? (P.counts[m.type] || 0) : 0), done: done.indexOf(m.type) >= 0 }; });
   }
   function checkMissions() {
     if (P.stage === 0) return;
-    const d = dayKey(new Date()); if (P.missionDay !== d) { P.missionDay = d; P.missionDone = []; }
     missionState().forEach(function(m) {
       if (m.have < m.n || m.done) return;
-      P.missionDone.push(m.type); // marked first: whatever the engine answers, it is never asked twice for the same mission
-      const r = reward('complete_mission'); if (!r.ok) return;
+      const r = reward('complete_mission', m.type); if (!r.ok) return; // the engine checks the count again and remembers it is paid
       banner('<b>Mission done</b> ' + esc(m.text) + '<span class="sub">+' + r.xp + ' XP · ' + P.missionDone.length + ' of 3 today</span>', '', 5000); Creature.burstSparks(50, 0x7cc9a4, 3); Creature.hop(1);
     });
   }
@@ -552,8 +566,7 @@
       Math.abs(a.food - 50) < 0.01 && !a.asleep, !b.asleep && b.energy > 85 && b.energy < 96, c.food === 50, d.food === FLOOR && d.joy === FLOOR && d.energy >= SLEEP_AT - 0.01,
       Object.keys(SPECIES).every(function(k) { const s = SPECIES[k]; return s.art.length === STAGES.length && (!s.models || s.models.length === STAGES.length); }), // every species covers every stage
       Object.keys(Evolution.RULES.events).every(function(k) { return EVENT[k]; }) && Evolution.RULES.traits.every(function(t) { return TRAIT[t]; }), Evolution.check(),
-      ['2026-11-16', '2026-11-17', '2026-12-31', '2027-01-01', '2027-02-28'].every(function(day) { const m = missions(day), ev = Evolution.RULES.events; // every day: three different missions, each within its event's daily limit
-        return m[0].type !== m[1].type && m[1].type !== m[2].type && m[0].type !== m[2].type && m.every(function(x) { return ev[x.type] && x.n <= (ev[x.type].daily || 99); }); }),
+      Evolution.RULES.missions.every(function(x) { const ev = Evolution.RULES.events[x.type]; return ev && MISSION_TEXT[x.type] && x.n <= (ev.daily || 99); }), // every mission has its words and fits its event's daily limit
       [].every.call(document.querySelectorAll('#actions .act'), function(b) { return b.dataset.act === 'warm' || (b.dataset.at || '').split(' ').every(function(w) { return w === 'home' || w === 'city' || PLACE[w]; }); })]; // every button names real places
     console.assert(ok.every(Boolean), 'Pet.check failed', ok, a, b, c, d); return ok.every(Boolean);
   }

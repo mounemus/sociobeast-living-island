@@ -27,6 +27,9 @@ try {
   r = await fs('GET', 'pets/' + a.uid, null); check('a visitor without account cannot read it', r.status === 403 || r.status === 401, r.status);
   r = await fs('PATCH', 'pets/' + a.uid, null, save(state)); check('a visitor without account cannot write', r.status === 403 || r.status === 401, r.status);
   r = await fs('PATCH', 'pets/' + a.uid, a.token, save(state, { admin: { booleanValue: true } })); check('extra fields are refused', r.status === 403, r.status);
+  r = await fs('PATCH', 'pets/' + a.uid, a.token, save(state, { engine: { stringValue: '{"xp":99999}' } })); check('a player cannot write the engine state', r.status === 403, r.status);
+  r = await fs('PATCH', 'pets/' + a.uid, a.token, save(state, { engineAt: { timestampValue: new Date().toISOString() } })); check('nor its date', r.status === 403, r.status);
+  r = await fs('PATCH', 'pets/' + a.uid + '?updateMask.fieldPaths=state&updateMask.fieldPaths=updatedAt', a.token, save(state)); check('owner updates only its own two fields (what the page does)', r.status === 200, r.status);
   r = await fs('PATCH', 'pets/' + a.uid, a.token, save('x'.repeat(70000))); check('an oversized save is refused', r.status === 403, r.status);
   r = await fs('PATCH', 'pets/' + a.uid, a.token, { fields: { state: { integerValue: '5' }, updatedAt: { timestampValue: new Date().toISOString() } } }); check('a save that is not text is refused', r.status === 403, r.status);
   r = await fs('PATCH', 'other/' + a.uid, a.token, save(state)); check('any other collection is closed', r.status === 403, r.status);

@@ -4,12 +4,20 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // pets/{uid}: the creature of the player whose id is uid. Only that player, signed in, can read, write or delete it.
     // The save is one JSON string (the same state the page keeps in localStorage) plus the time of the write.
+    // `engine` and `engineAt` are the rules engine's state (XP, stage, traits, missions): the player can read them, never
+    // write them. Only the server does (api/event.js, with the project's service account, which these rules do not bind).
     match /pets/{uid} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid
+      allow create: if request.auth != null && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['state', 'updatedAt'])
         && request.resource.data.state is string && request.resource.data.state.size() < 60000
         && request.resource.data.updatedAt is timestamp;
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['state', 'updatedAt', 'engine', 'engineAt'])
+        && request.resource.data.state is string && request.resource.data.state.size() < 60000
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.get('engine', null) == resource.data.get('engine', null)
+        && request.resource.data.get('engineAt', null) == resource.data.get('engineAt', null);
     }
   }
 }
